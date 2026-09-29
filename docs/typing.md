@@ -15,7 +15,7 @@ defaults:
     think_before: [0.3, 1.2]   # pause before starting a command
     think_long_threshold: 40   # longer commands get a longer pause
     burst: { chance: 0.15, speedup: 1.8, length: [3, 8] }
-    reword: { chance: 0.05, hesitation: [0.3, 0.7], min_length: 3 }  # backspace a word, retype
+    reword: { chance: 0, hesitation: [0.3, 0.7], min_length: 3 }  # off; retypes correct words
     layout: us                 # us | de | ru | path to a layout file
     typos:
       enabled: true
@@ -45,10 +45,11 @@ so it stays an exact, deterministic pace.
 range, and the first keystroke of a new word also gets extra timing spread — so the rhythm
 clearly varies from word to word, the way a person's does.
 
-**Rewording.** With `reword`, the typist occasionally (5 % of words by default) finishes a
-word, pauses, **backspaces the whole word and types it again** — as if second‑guessing it.
-Like typos, this only happens where backspacing is safe (a shell command line that is
-verified before Enter); it never runs inside a full‑screen program or a `secret`.
+**Rewording.** `reword` is an **opt‑in** flourish (off by default): set `reword.chance` and
+the typist will occasionally finish a word, pause, **backspace the whole word and type it
+again** — as if second‑guessing it. It retypes *correct* words, so it is deliberately off
+unless you want that effect. Like typos, it only runs where backspacing is safe (a shell
+command line verified before Enter), never inside a full‑screen program or a `secret`.
 
 | Profile | Speed | Typos |
 | --- | --- | --- |

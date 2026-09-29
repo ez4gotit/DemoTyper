@@ -71,8 +71,9 @@ BASE: dict[str, Any] = {
     "think_before": (0.3, 1.2),
     "think_long_threshold": 40,
     "burst": {"chance": 0.15, "speedup": 1.8, "length": (3, 8)},
-    # Occasionally backspace a whole word and retype it (only on a shell command line).
-    "reword": {"chance": 0.05, "hesitation": (0.3, 0.7), "min_length": 3},
+    # Optionally backspace a whole (already-correct) word and retype it, as a person
+    # second-guessing themselves. Off by default - set `reword.chance` to enable it.
+    "reword": {"chance": 0.0, "hesitation": (0.3, 0.7), "min_length": 3},
     "layout": "us",
     "typos": {
         "enabled": True,
@@ -97,7 +98,7 @@ PROFILES: dict[str, dict[str, Any]] = {
         "punctuation_pause": (0.1, 0.4), "shifted_slowdown": 1.4,
         "think_before": (0.3, 1.2),
         "burst": {"chance": 0.15, "speedup": 1.8},
-        "reword": {"chance": 0.05},
+        "reword": {"chance": 0.0},
         "typos": {"enabled": True, "rate": 0.03},
     },
     "novice": {
@@ -105,7 +106,7 @@ PROFILES: dict[str, dict[str, Any]] = {
         "punctuation_pause": (0.2, 0.7), "shifted_slowdown": 1.8,
         "think_before": (0.8, 2.5),
         "burst": {"chance": 0.03, "speedup": 1.3},
-        "reword": {"chance": 0.09},          # a novice second-guesses words more
+        "reword": {"chance": 0.0},
         "typos": {"enabled": True, "rate": 0.06, "notice_after": (1, 4)},
     },
     "expert": {
@@ -113,7 +114,7 @@ PROFILES: dict[str, dict[str, Any]] = {
         "punctuation_pause": (0.04, 0.15), "shifted_slowdown": 1.15,
         "think_before": (0.2, 0.6),
         "burst": {"chance": 0.3, "speedup": 2.0},
-        "reword": {"chance": 0.02},          # an expert rarely rewords
+        "reword": {"chance": 0.0},
         "typos": {"enabled": True, "rate": 0.01, "notice_after": (0, 1)},
     },
     "robot": {
