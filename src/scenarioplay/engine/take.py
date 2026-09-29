@@ -26,6 +26,8 @@ from ruamel.yaml import YAML
 
 from ..console import Session
 from ..console.cast import CastRecorder
+from ..console.driver import Console
+from ..console.geometry import pane_region
 from ..console.session import SESSION
 from ..console.terminal import TerminalWindow
 from ..errors import ControlSignal, EnvironmentProblem, StepAbort, StopTake
@@ -36,6 +38,7 @@ from ..recorder import NullRecorder, Recorder, X11Recorder
 from ..recorder.host import HostRecorder, default_source
 from ..recorder.wayland import WfRecorder
 from ..report import Reporter
+from ..report.snapshot import render_page, render_text
 from ..secretstore import load_secrets, referenced_secrets
 from ..target.vmrun import display_name
 from ..target.vmware import VMwareTarget
@@ -73,8 +76,10 @@ class Take:
             self.runtime_dir = os.path.join(
                 os.environ.get("XDG_RUNTIME_DIR") or tempfile.gettempdir(),
                 f"scenarioplay-{self.id}")
-        self.recorder: Recorder = NullRecorder()
+        self.recorder: Recorder = NullRecorder()  # the clip recording now, if any
         self.recording = False
+        self.clips: list[Recorder] = []  # one recorder per clip, in order
+        self._idle_grabber: Recorder | None = None
         self.session: Session | None = None
         self.terminal: TerminalWindow | None = None
         self.ctx: RunContext | None = None
@@ -130,7 +135,7 @@ class Take:
         except asyncio.CancelledError:
             if self._task is not None and hasattr(self._task, "uncancel"):
                 self._task.uncancel()
-            if self.recorder.died:
+            if any(clip.died for clip in self.clips):
                 self.status, self.exit = "failed", ExitCode.ENVIRONMENT
                 self.failure = {"error": "the screen recorder stopped unexpectedly"}
             else:
@@ -205,14 +210,13 @@ class Take:
             if parsed.model.defaults.clear_after_setup:
                 await self.session.clear()
 
-        if opts.record:
-            recorder = self._make_recorder()
-            recorder.on_death = self._task.cancel if self._task else None
-            self.recorder = recorder
-            self.ctx.recorder = recorder
-            await recorder.start()
-            self.recording = True
-            self.reporter.timeline.segments = recorder.segments  # updated in place
+        self.ctx.start_clip = self.start_clip
+        self.ctx.stop_clip = self.stop_clip
+        self.ctx.grab_screenshot = self.screenshot
+        if opts.record and target.recorder.autostart:
+            await self.start_clip(None, lead_in=False)
+        elif opts.record:
+            self.log("info", "recording starts at the first `record: start` step")
         self.reporter.timeline.t0 = self.recorder.frame0_wall() or time.time()
         if opts.cast:
             self.casts = CastRecorder(self.runtime_dir)
@@ -220,10 +224,7 @@ class Take:
                 await self.casts.start(console, self.reporter.timeline.t0 or time.time(),
                                        parsed.title)
         if self.recording:
-            # The lead-in counts from the first frame, which ffmpeg captured a moment
-            # before it reported it.
-            elapsed = time.time() - self.reporter.timeline.t0
-            await asyncio.sleep(max(0.0, target.recorder.lead_in - elapsed))
+            await self._lead_in()
         steps = parsed.sections["steps"]
         first, stop = select(steps, opts.from_name, opts.to_name)
         if (first, stop) != (0, len(steps)):
@@ -231,8 +232,96 @@ class Take:
                              f"(--from/--to); `setup` and `finally` run as usual")
         self.log("info", "--- steps")
         await self.engine.run_section("steps", steps[first:stop])
+        await self.ctx.end_of_steps()
         if self.recording:
-            await asyncio.sleep(target.recorder.tail)
+            await self.stop_clip()
+
+    # --- clips (record: start / stop) ------------------------------------------------------
+
+    async def start_clip(self, name: str | None, *, lead_in: bool = True) -> bool:
+        """Start a new video file. Returns False if one is already recording."""
+        if self.recording:
+            return False
+        index = len(self.clips) + 1
+        recorder = self._make_recorder(f"clip{index:02d}")
+        recorder.on_death = self._task.cancel if self._task else None
+        await recorder.start()
+        self.recorder = recorder
+        if self.ctx is not None:
+            self.ctx.recorder = recorder
+        self.recording = True
+        self.clips.append(recorder)
+        self.reporter.add_clip(name or f"clip {index}", recorder.segments)
+        if lead_in:
+            await self._lead_in()
+        return True
+
+    async def stop_clip(self) -> bool:
+        """End the current video file (after the tail). Returns False if none records."""
+        if not self.recording:
+            return False
+        await asyncio.sleep(self.parsed.model.target.recorder.tail)
+        await self.recorder.stop()
+        self.reporter.clips[-1].end = time.time()
+        self.recording = False
+        self.recorder = NullRecorder()
+        if self.ctx is not None:
+            self.ctx.recorder = self.recorder
+        return True
+
+    async def _lead_in(self) -> None:
+        # The lead-in counts from the first frame, which ffmpeg captured a moment before it
+        # reported it.
+        first = self.recorder.frame0_wall() or time.time()
+        await asyncio.sleep(max(0.0, self.parsed.model.target.recorder.lead_in
+                                - (time.time() - first)))
+
+    # --- screenshots -------------------------------------------------------------------
+
+    def _grabber(self) -> Recorder | None:
+        """What takes screenshots: the running recorder, or an idle one of the same kind
+        (screenshots work while recording is stopped, and with --no-record)."""
+        if self.recording:
+            return self.recorder
+        if self.headless or (self.kind == "local" and not self.display
+                             and self._backend() == "x11grab"):
+            return None
+        if self._idle_grabber is None:
+            self._idle_grabber = self._make_recorder("screenshot", quiet=True)
+        return self._idle_grabber
+
+    async def screenshot(self, name: str, console: Console | None = None,
+                         text: bool | None = None) -> list[str]:
+        """Save screenshots/<name>.png (cropped to `console` if given), and with `text` the
+        console text as .html and .txt. Headless takes save the text only. Returns the saved
+        files, relative to the take folder."""
+        assert self.session is not None
+        stem = re.sub(r"[^\w.-]+", "-", name).strip("-")
+        stem = stem[:-4] if stem.lower().endswith(".png") else stem
+        saved: list[str] = []
+        grabber = self._grabber()
+        if grabber is not None:
+            region = await pane_region(console, self.session) if console else None
+            if console and region is None:
+                self.log("info", "console position unknown: screenshot not cropped")
+            if await grabber.screenshot(self.dir / "screenshots" / f"{stem}.png", region):
+                saved.append(f"screenshots/{stem}.png")
+        want_text = text if text is not None else self.parsed.model.defaults.screenshots.text
+        if want_text or not saved:
+            saved += await self._text_snapshot(stem, console)
+        return saved
+
+    async def _text_snapshot(self, stem: str, console: Console | None) -> list[str]:
+        assert self.session is not None
+        consoles = [console] if console else self.session.visible_consoles()
+        blocks = []
+        for c in consoles:
+            ansi = await c.tmux("capture-pane", "-p", "-e", "-t", c.pane, check=False)
+            blocks.append((c.spec.title or c.name, ansi))
+        title = f"{self.parsed.title} - {stem}"
+        self.reporter.write_text(f"screenshots/{stem}.html", render_page(title, blocks))
+        self.reporter.write_text(f"screenshots/{stem}.txt", render_text(blocks))
+        return [f"screenshots/{stem}.html", f"screenshots/{stem}.txt"]
 
     async def _open_consoles(self, transport: Transport, names: list[str]) -> None:
         """tmux session, terminal window, first prompts. Also used after a guest revert."""
@@ -261,16 +350,18 @@ class Take:
                              f"tmux -L {self.session.tmux.socket} attach)")
         await self.session.wait_ready()
 
-    def _make_recorder(self) -> Recorder:
+    def _make_recorder(self, basename: str = "video", quiet: bool = False) -> Recorder:
         target = self.parsed.model.target
         if self.kind == "vmware" and target.record == "host":
             assert self.vm is not None and target.vmx
             source = self.opts.display or default_source(display_name(target.vmx))
-            self.log("info", f"recording on the host (mode B): {source}")
-            return HostRecorder(target.recorder, source, self.dir, self.log)
+            if not quiet:
+                self.log("info", f"recording on the host (mode B): {source}")
+            return HostRecorder(target.recorder, source, self.dir, self.log, basename)
         cls = WfRecorder if self._backend() == "wf-recorder" else X11Recorder
         return cls(target.recorder, self.display or "", self.dir, self.log,
-                   transport=self.transport, workdir=self.runtime_dir, env=self.x_env)
+                   transport=self.transport, workdir=self.runtime_dir, env=self.x_env,
+                   basename=basename)
 
     def _backend(self) -> str:
         backend = self.parsed.model.target.recorder.backend
@@ -322,12 +413,12 @@ class Take:
             "error": mask(str(error)),
             **details,
         }
-        if self.recording:
-            path = self.dir / "screenshots" / "failure.png"
-            if await self.recorder.screenshot(path):
-                self.failure["screenshot"] = "screenshots/failure.png"
         if self.session is None:
             return
+        grabber = self._grabber()
+        if grabber is not None and await grabber.screenshot(
+                self.dir / "screenshots" / "failure.png"):
+            self.failure["screenshot"] = "screenshots/failure.png"
         failing = details.get("console") or step.console or (self.ctx.current if self.ctx else None)
         for name, console in self.session.consoles.items():
             try:
@@ -347,6 +438,8 @@ class Take:
     async def _wrap_up(self) -> None:
         if self.recording:
             await self.recorder.stop()
+            self.reporter.clips[-1].end = time.time()
+            self.recording = False
         if self.casts is not None and self.session is not None:
             for console in self.session.all_consoles().values():
                 await self.casts.stop(console)
@@ -354,19 +447,48 @@ class Take:
             await self._run_finally()
             await self._write_transcripts()
             await self._save_casts()
-        keep_video = self.status == "success" or self.parsed.model.defaults.keep_video_on_fail
-        # finalize() replaces the segments' estimated start times with the exact ones, which
-        # the timeline (sharing the list) uses for chapters and subtitles.
-        video = await self.recorder.finalize(keep_video)
+        video = await self._finalize_clips()
         self._write_resolved()
-        self.reporter.write_outputs(self._summary(video.name if video else None))
-        if video is not None and video.suffix == ".mp4" and self.opts.burn_subtitles:
-            await self._burn_subtitles(video)
+        self.reporter.write_outputs(self._summary(video))
+        if self.opts.burn_subtitles:
+            if len(self.reporter.clips) == 1 and video:
+                await self._burn_subtitles(self.dir / video, "subtitles.srt")
+            for clip in self.reporter.clips if len(self.reporter.clips) > 1 else []:
+                if clip.video and clip.video.endswith(".mp4"):
+                    await self._burn_subtitles(self.dir / clip.video, f"{clip.stem}.srt")
         if self.status == "success":
             self.log("info", f"take finished: {self.dir}")
         else:
             self.log("error", f"take {self.status} (exit code {int(self.exit)}): {self.dir}")
         await self._cleanup()
+
+    async def _finalize_clips(self) -> str | None:
+        """Turn each clip's capture into an MP4. One clip is video.mp4, as always; several
+        are clips/NN-name.mp4. Returns the single video's name, if there is one."""
+        if self.recording:  # the take ended with a clip still running (failure or Ctrl+C)
+            await self.recorder.stop()
+            self.reporter.clips[-1].end = time.time()
+            self.recording = False
+        keep = self.status == "success" or self.parsed.model.defaults.keep_video_on_fail
+        several = len(self.clips) > 1
+        for recorder, clip in zip(self.clips, self.reporter.clips, strict=True):
+            # finalize() replaces the segments' estimated start times with the exact ones,
+            # which the clip's timeline (sharing the list) uses for chapters and subtitles.
+            path = await recorder.finalize(keep)
+            if path is None:
+                continue
+            if path.suffix != ".mp4":  # remux failed: the .mkv was kept as it is
+                clip.video = path.name
+                continue
+            target = (self.dir / "clips" / f"{clip.stem}.mp4") if several \
+                else self.dir / "video.mp4"
+            target.parent.mkdir(exist_ok=True)
+            path.replace(target)
+            clip.video = target.relative_to(self.dir).as_posix()
+        if several:
+            self.log("info", f"{len(self.clips)} clips in {self.dir / 'clips'}")
+            return None
+        return self.reporter.clips[0].video if self.reporter.clips else None
 
     async def _run_finally(self) -> None:
         steps = self.parsed.sections.get("finally", [])
@@ -407,24 +529,25 @@ class Take:
             if text is not None:
                 self.reporter.write_text(f"cast/{name}.cast", text)
 
-    async def _burn_subtitles(self, video: Path) -> None:
-        """`--burn-subtitles` (spec 10.3): video.mp4 gets the subtitles drawn in; the
-        original is kept as video.clean.mp4."""
-        if not (self.dir / "subtitles.srt").exists():
-            self.log("info", "no subtitles to burn in")
+    async def _burn_subtitles(self, video: Path, srt_name: str) -> None:
+        """`--burn-subtitles` (spec 10.3): the video gets its subtitles drawn in; the
+        original is kept as <name>.clean.mp4. `srt_name` is next to the video."""
+        if not (video.parent / srt_name).exists():
+            self.log("info", f"no subtitles to burn into {video.name}")
             return
-        clean = self.dir / "video.clean.mp4"
+        clean = video.with_name(video.stem + ".clean.mp4")
         video.rename(clean)
         spec = self.parsed.model.target.recorder
         proc = await asyncio.create_subprocess_exec(
             "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", clean.name,
-            "-vf", "subtitles=subtitles.srt:force_style='FontSize=22,MarginV=28'",
+            "-vf", f"subtitles={srt_name}:force_style='FontSize=22,MarginV=28'",
             "-c:v", spec.codec, "-preset", spec.preset, "-crf", str(spec.crf),
             "-pix_fmt", "yuv420p", "-movflags", "+faststart", video.name,
-            cwd=self.dir, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
+            cwd=video.parent, stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.PIPE)
         _, err = await proc.communicate()
         if proc.returncode == 0:
-            self.log("info", "subtitles burned into video.mp4 (original: video.clean.mp4)")
+            self.log("info", f"subtitles burned into {video.name} (original: {clean.name})")
         else:
             clean.rename(video)
             self.log("warning", "could not burn in the subtitles (ffmpeg needs libass): "
@@ -456,7 +579,7 @@ class Take:
             "started_at": self.info.started_at,
             "finished_at": datetime.fromtimestamp(finished).isoformat(timespec="seconds"),
             "duration": round(finished - self.reporter.started, 3),
-            "recorded": self.recording,
+            "recorded": bool(self.clips),
             "video": video,
             "failure": self.failure,
             "executed_mismatches": ctx.executed_mismatches if ctx else [],

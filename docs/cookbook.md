@@ -89,6 +89,51 @@ To keep the video short:
 - record: resume              # adds a "(14 min 03 s skipped)" subtitle
 ```
 
+## Several videos from one take
+
+`record: stop` ends the current video file and `record: start` begins a new one. With
+`autostart: false`, recording begins only at the first `record: start`:
+
+```yaml
+target:
+  recorder: { autostart: false }
+steps:
+  - run: "git clone https://example.com/lab.git && cd lab"   # preparation, not recorded
+  - record: start
+    clip: build
+  - chapter: "Build"
+  - run: "make"
+  - record: stop
+  - run: "make test > /dev/null"                               # not recorded
+  - record: start
+    clip: results
+  - chapter: "Results"
+  - run: "cat results.txt"
+```
+
+The take folder then has `clips/01-build.mp4` and `clips/02-results.mp4`, each with its
+own `.chapters.txt` and `.srt`. `report.json` lists the clips, and each step has a `clip`
+number. A take with a single clip still writes `video.mp4`, as usual.
+
+## Screenshots for a handout
+
+```yaml
+defaults:
+  screenshots:
+    chapters: end        # a PNG at the end of every chapter: 01-<chapter>-end.png, ...
+    text: true           # plus the console text, as .html (with colours) and .txt
+steps:
+  - chapter: "Task 4: The access log"
+  - run: "sudo tail -n 5 /var/log/nginx/access.log"
+    console: logs
+  - screenshot:          # just that console, cropped to its pane
+      file: task4-log.png
+      console: logs
+```
+
+Screenshots also work while recording is stopped, and with `--no-record`. A headless take
+has no screen, so it saves the text only.
+
 ## A service that must be ready
 
 ```yaml

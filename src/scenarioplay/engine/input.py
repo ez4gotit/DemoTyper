@@ -121,6 +121,8 @@ async def type_text(ctx: RunContext, console: Console, text: str, *,
         plan = plan_line(line, params, rng, ctx.speed, typos=typos)
         for typo in plan.typos:
             ctx.log("info", "  " + typo.describe())
+        for word in plan.rewords:
+            ctx.log("info", f"  reworded {word!r} (backspaced and retyped)")
         await send_keystrokes(console, plan.events)
         verified = False
         if press:

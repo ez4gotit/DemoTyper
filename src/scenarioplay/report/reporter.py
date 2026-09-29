@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import time
 from dataclasses import asdict, dataclass, field
@@ -12,12 +13,29 @@ from typing import Any, TextIO
 
 import click
 
-from ..recorder.base import Timeline
+from ..recorder.base import Segment, Timeline
 from .formats import Chapter, Subtitle, chapters_txt, srt
 from .masker import Masker
 
 LEVELS = {"debug": 10, "info": 20, "warning": 30, "error": 40}
 CHAPTER_SUBTITLE_SECONDS = 4.0
+
+
+@dataclass
+class Clip:
+    """One video file of the take (`record: stop` / `record: start` make several)."""
+
+    index: int
+    name: str
+    timeline: Timeline
+    start: float  # wall clock of `record: start`
+    end: float | None = None  # wall clock of `record: stop`
+    video: str | None = None  # path in the take folder, once finalized
+
+    @property
+    def stem(self) -> str:
+        slug = re.sub(r"[^A-Za-z0-9]+", "-", self.name).strip("-").lower()[:40]
+        return f"{self.index:02d}-{slug or 'clip'}"
 
 
 @dataclass
@@ -45,6 +63,7 @@ class Reporter:
         self._log = open(take_dir / "take.log", "w", encoding="utf-8", buffering=1)
         self.started = time.time()
         self.timeline = Timeline()
+        self.clips: list[Clip] = []
         self._chapters: list[tuple[float, str, str | None]] = []  # wall, title, caption
         self._captions: list[tuple[float, str, float]] = []  # wall, text, duration
         self.steps: list[StepRecord] = []
@@ -82,19 +101,47 @@ class Reporter:
 
     # --- outputs -----------------------------------------------------------------------
 
-    def chapters(self) -> list[Chapter]:
-        vt = self.timeline.video_time
-        return [Chapter(vt(w), t, c) for w, t, c in self._chapters]
+    # --- clips ----------------------------------------------------------------------
 
-    def subtitles(self) -> list[Subtitle]:
-        vt = self.timeline.video_time
-        subs = []
+    def add_clip(self, name: str, segments: list[Segment]) -> Clip:
+        """A new video clip (`record: start`). Its timeline shares the recorder's segments."""
+        timeline = Timeline()
+        timeline.segments = segments
+        clip = Clip(len(self.clips) + 1, name, timeline, time.time())
+        self.clips.append(clip)
+        self.timeline = timeline  # steps and events from now on belong to this clip
+        return clip
+
+    def _clip_of(self, wall: float) -> Clip | None:
+        """The clip an event at `wall` belongs to: the one running then, or the next one
+        (a chapter started while recording was stopped opens the next clip). None for
+        events after the last clip ended."""
+        for clip in self.clips:
+            if clip.end is None or wall <= clip.end:
+                return clip
+        return None
+
+    def _events(self, clip: Clip | None) -> tuple[list[Chapter], list[Subtitle]]:
+        timeline = clip.timeline if clip is not None else self.timeline
+        vt = timeline.video_time
+        chapters, subs = [], []
         for wall, title, caption in self._chapters:
+            if clip is not None and self._clip_of(wall) is not clip:
+                continue
+            chapters.append(Chapter(vt(wall), title, caption))
             text = title + (f"\n{caption}" if caption else "")
             subs.append(Subtitle(vt(wall), vt(wall) + CHAPTER_SUBTITLE_SECONDS, text))
         for wall, text, duration in self._captions:
+            if clip is not None and self._clip_of(wall) is not clip:
+                continue
             subs.append(Subtitle(vt(wall), vt(wall) + duration, text))
-        return subs
+        return chapters, subs
+
+    def chapters(self) -> list[Chapter]:
+        return self._events(self.clips[0] if len(self.clips) == 1 else None)[0]
+
+    def subtitles(self) -> list[Subtitle]:
+        return self._events(self.clips[0] if len(self.clips) == 1 else None)[1]
 
     def write_text(self, relative: str, text: str) -> Path:
         path = self.take_dir / relative
@@ -103,25 +150,51 @@ class Reporter:
         return path
 
     def write_outputs(self, summary: dict[str, Any]) -> None:
-        chapters = self.chapters()
-        if chapters:
-            self.write_text("chapters.txt", chapters_txt(chapters))
-        subtitles = self.subtitles()
-        if subtitles:
-            self.write_text("subtitles.srt", srt(subtitles))
-        vt = self.timeline.video_time
+        """One clip (or none): chapters.txt and subtitles.srt next to video.mp4, as always.
+        Several clips: clips/NN-name.chapters.txt and .srt next to each clip's video."""
+        clip_reports = []
+        if len(self.clips) <= 1:
+            chapters, subtitles = self._events(self.clips[0] if self.clips else None)
+            if chapters:
+                self.write_text("chapters.txt", chapters_txt(chapters))
+            if subtitles:
+                self.write_text("subtitles.srt", srt(subtitles))
+            all_chapters = chapters
+        else:
+            all_chapters = []
+            for clip in self.clips:
+                chapters, subtitles = self._events(clip)
+                if chapters:
+                    self.write_text(f"clips/{clip.stem}.chapters.txt", chapters_txt(chapters))
+                if subtitles:
+                    self.write_text(f"clips/{clip.stem}.srt", srt(subtitles))
+                clip_reports.append({
+                    "clip": clip.index, "name": clip.name, "video": clip.video,
+                    "chapters": [{"time": round(c.time, 3), "title": c.title}
+                                 for c in chapters]})
+                all_chapters += chapters
         steps = []
         for rec in self.steps:
             d = asdict(rec)
-            d["video_time"] = round(vt(rec.started), 3) if rec.section == "steps" else None
+            # A step is in a clip only if it ran while that clip was recording (unlike a
+            # chapter title, which moves on to the next clip).
+            clip = next((c for c in self.clips if c.start <= rec.started
+                         and (c.end is None or rec.started <= c.end)), None)
+            timeline = clip.timeline if clip is not None else self.timeline
+            in_video = rec.section == "steps" and (clip is not None or not self.clips)
+            d["video_time"] = round(timeline.video_time(rec.started), 3) if in_video else None
+            if len(self.clips) > 1:
+                d["clip"] = clip.index if clip is not None and in_video else None
             d["started"] = datetime.fromtimestamp(rec.started).isoformat(timespec="milliseconds")
             d["duration"] = round(rec.duration, 3)
             steps.append(d)
         report = {
             **summary,
-            "chapters": [{"time": round(c.time, 3), "title": c.title} for c in chapters],
+            "chapters": [{"time": round(c.time, 3), "title": c.title} for c in all_chapters],
             "steps": steps,
         }
+        if clip_reports:
+            report["clips"] = clip_reports
         self.write_text("report.json", json.dumps(report, indent=2, ensure_ascii=False) + "\n")
 
     def close(self) -> None:

@@ -6,14 +6,16 @@ Every character is sent separately with a human-like rhythm. Nothing is pasted.
 defaults:
   typing:
     profile: normal            # novice | normal | expert | robot
+    speed: 0.7                 # overall pace multiplier (>1 faster, <1 slower); 0.7 default
     cps: 9                     # mean characters per second
     jitter: 0.35               # random spread of the delays
-    word_pause: [0.05, 0.25]   # extra pause after a space
+    word_pause: [0.05, 0.5]    # extra, varied pause after a space
     punctuation_pause: [0.1, 0.4]
     shifted_slowdown: 1.4      # Shift characters are slower
     think_before: [0.3, 1.2]   # pause before starting a command
     think_long_threshold: 40   # longer commands get a longer pause
     burst: { chance: 0.15, speedup: 1.8, length: [3, 8] }
+    reword: { chance: 0.05, hesitation: [0.3, 0.7], min_length: 3 }  # backspace a word, retype
     layout: us                 # us | de | ru | path to a layout file
     typos:
       enabled: true
@@ -32,6 +34,21 @@ Settings layer in this order: `defaults.typing`, then the console's `typing`, th
 step's `typing`. At each level a `profile` applies first and that level's own settings
 second. From the command line, `--speed 2` halves every delay and pause, `--typos 0.05`
 sets the rate, and `--no-typos` turns typos off.
+
+**Overall pace (`speed`).** `speed` is a single multiplier on the whole typing pace: `1.0`
+is the raw profile pace, `0.7` (the **default**) is 30 % slower, `2.0` is twice as fast. It
+is separate from the CLI `--speed` (they multiply), so you can slow the *scenario's* typing
+without changing how the operator scales a run. The `robot` profile pins `speed` to `1.0`
+so it stays an exact, deterministic pace.
+
+**Pauses between words.** The pause after each space is a random value in the `word_pause`
+range, and the first keystroke of a new word also gets extra timing spread — so the rhythm
+clearly varies from word to word, the way a person's does.
+
+**Rewording.** With `reword`, the typist occasionally (5 % of words by default) finishes a
+word, pauses, **backspaces the whole word and types it again** — as if second‑guessing it.
+Like typos, this only happens where backspacing is safe (a shell command line that is
+verified before Enter); it never runs inside a full‑screen program or a `secret`.
 
 | Profile | Speed | Typos |
 | --- | --- | --- |

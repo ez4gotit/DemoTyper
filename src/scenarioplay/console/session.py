@@ -236,6 +236,13 @@ class Session:
             await self.activate(next(iter(self.consoles.values())))
         await self.arrange()
 
+    def visible_consoles(self) -> list[Console]:
+        """The consoles on screen now: all panes in a split layout, else the active one."""
+        if not self.windowed:
+            return list(self.consoles.values())
+        active = self.active if self.active in self.consoles.values() else None
+        return [active or next(iter(self.consoles.values()))]
+
     def all_consoles(self) -> dict[str, Console]:
         """Open and closed consoles, for transcripts."""
         return {**self.closed, **self.consoles}

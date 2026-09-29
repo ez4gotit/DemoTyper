@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import os
 import random
+import re
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -88,6 +89,12 @@ class RunContext:
         self.paused_at: float | None = None  # when `record: pause` ran
         self.vm: Any = None  # the VMwareTarget, for `vm` steps
         self.restart_guest: Any = None  # Take.restart_guest (revert/reboot + rebuild)
+        # Set by the take: record: start/stop, and screenshots (name, console, text).
+        self.start_clip: Any = None
+        self.stop_clip: Any = None
+        self.grab_screenshot: Any = None
+        self.chapter_count = 0
+        self.chapter_title: str | None = None
         self.defines = parsed.defines
         self.engine: Engine | None = None
         # Per-task state: each `parallel` branch runs in its own asyncio task and gets its
@@ -213,14 +220,35 @@ class RunContext:
         return random.Random(f"{seed}:{key}")
 
 
-    async def screenshot(self, path: Path) -> bool:
-        if self.recorder.segments:  # recording: the recorder knows where the screen is
-            return await self.recorder.screenshot(path)
-        if not self.display or not self.session.transport.is_local:
-            return False
-        from ..recorder import take_screenshot
+    async def screenshot(self, name: str, console: Console | None = None,
+                         text: bool | None = None) -> list[str]:
+        """Save screenshots/<name>.png (and the text, if asked); returns the files saved."""
+        if self.grab_screenshot is None:
+            return []
+        return await self.grab_screenshot(name, console, text)
 
-        return await take_screenshot(self.display, path)
+    # --- chapters and automatic screenshots ------------------------------------------
+
+    async def begin_chapter(self, title: str) -> None:
+        """Called by `chapter` steps: automatic screenshots at chapter boundaries."""
+        mode = self.defaults.screenshots.chapters
+        if mode in ("end", "both") and self.chapter_title is not None:
+            await self._chapter_shot("end")
+        self.chapter_count += 1
+        self.chapter_title = title
+        if mode in ("start", "both"):
+            await self._chapter_shot("start")
+
+    async def end_of_steps(self) -> None:
+        if self.defaults.screenshots.chapters in ("end", "both") and self.chapter_title:
+            await self._chapter_shot("end")
+
+    async def _chapter_shot(self, when: str) -> None:
+        slug = re.sub(r"[^A-Za-z0-9]+", "-", self.chapter_title or "").strip("-").lower()[:40]
+        name = f"{self.chapter_count:02d}-{slug or 'chapter'}-{when}"
+        saved = await self.screenshot(name)
+        if saved:
+            self.log("info", f"screenshot at chapter {when}: {', '.join(saved)}")
 
     async def sleep(self, seconds: float, *, scaled: bool = True) -> None:
         if seconds > 0:

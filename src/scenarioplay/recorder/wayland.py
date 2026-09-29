@@ -73,11 +73,18 @@ class WfRecorder(X11Recorder):
         except ValueError:
             return None, None
 
-    async def screenshot(self, path: Path) -> bool:
+    async def screenshot(self, path: Path,
+                         region: tuple[int, int, int, int] | None = None) -> bool:
         path.parent.mkdir(parents=True, exist_ok=True)
         target = str(path) if self.transport.is_local else f"{self.workdir}/{path.name}"
-        argv = ["grim", *(["-o", self.display] if self.display and
-                          not self.display.startswith(":") else []), target]
+        if region is not None:
+            x, y, w, h = region
+            where = ["-g", f"{x},{y} {w}x{h}"]
+        elif self.display and not self.display.startswith(":"):
+            where = ["-o", self.display]
+        else:
+            where = []
+        argv = ["grim", *where, target]
         try:
             res = await self.transport.run(argv, timeout=15, env=self.env)
         except (asyncio.TimeoutError, FileNotFoundError):

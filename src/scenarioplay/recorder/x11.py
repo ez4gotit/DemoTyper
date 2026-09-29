@@ -24,6 +24,7 @@ from ..transport.base import Process
 from .base import Recorder, Segment
 
 Log = Callable[[str, str], None]
+Region = tuple[int, int, int, int]  # x, y, width, height in pixels
 
 BLACK_WARNING = (
     "the captured screen is entirely black, so the video will be too. On WSLg and other "
@@ -53,17 +54,24 @@ async def screen_is_black(display: str, transport: Transport | None = None,
     return int(m.group(1)) < 24
 
 
+def crop_filter(region: Region) -> list[str]:
+    """ffmpeg crop to (x, y, width, height) in pixels, clamped to the frame."""
+    x, y, w, h = region
+    return ["-vf", f"crop=w='min({w},iw-{x})':h='min({h},ih-{y})':x={x}:y={y}"]
+
+
 async def take_screenshot(display: str, path: Path, transport: Transport | None = None,
-                          workdir: str | None = None,
-                          env: dict[str, str] | None = None) -> bool:
+                          workdir: str | None = None, env: dict[str, str] | None = None,
+                          region: Region | None = None) -> bool:
+    """One frame of the X display as a PNG; `region` crops it (x, y, width, height)."""
     transport = transport or LocalTransport()
     path.parent.mkdir(parents=True, exist_ok=True)
     target = str(path) if transport.is_local else f"{workdir}/{path.name}"
     try:
         res = await transport.run(
             ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "x11grab",
-             "-draw_mouse", "0", "-i", display, "-frames:v", "1", target], timeout=15,
-            env=env)
+             "-draw_mouse", "0", "-i", display, "-frames:v", "1",
+             *(crop_filter(region) if region else []), target], timeout=15, env=env)
     except (asyncio.TimeoutError, FileNotFoundError):
         return False
     if res.rc != 0:
@@ -76,7 +84,7 @@ async def take_screenshot(display: str, path: Path, transport: Transport | None 
 class X11Recorder(Recorder):
     def __init__(self, spec: RecorderSpec, display: str, take_dir: Path, log: Log,
                  transport: Transport | None = None, workdir: str | None = None,
-                 env: dict[str, str] | None = None):
+                 env: dict[str, str] | None = None, basename: str = "video"):
         super().__init__()
         self.env = env or {}  # DISPLAY/XAUTHORITY for a guest's X server
         self.spec = spec
@@ -86,7 +94,9 @@ class X11Recorder(Recorder):
         self.transport = transport or LocalTransport()
         # Where ffmpeg writes: the take folder here, or a directory on the guest.
         self.workdir = str(take_dir) if self.transport.is_local else (workdir or "/tmp")
-        self.video_path = take_dir / "video.mp4"
+        # One recorder per clip; each clip's files start with its own basename.
+        self.basename = basename
+        self.video_path = take_dir / f"{basename}.mp4"
         self.stderr_path = f"{self.workdir}/recorder.log"
         self.proc: Process | None = None
         self._capturing = asyncio.Event()
@@ -97,11 +107,12 @@ class X11Recorder(Recorder):
     @property
     def raw_path(self) -> Path:
         """The first segment (kept for callers that expect one file)."""
-        return Path(f"{self.workdir}/video.mkv")
+        return Path(f"{self.workdir}/{self.basename}.mkv")
 
     def _segment_path(self) -> str:
         n = len(self.segments) + 1
-        return f"{self.workdir}/video.mkv" if n == 1 else f"{self.workdir}/video.part{n}.mkv"
+        base = f"{self.workdir}/{self.basename}"
+        return f"{base}.mkv" if n == 1 else f"{base}.part{n}.mkv"
 
     def argv(self, output: str) -> list[str]:
         return ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
@@ -256,12 +267,12 @@ class X11Recorder(Recorder):
                 seg.start = start
             if duration is not None:
                 seg.duration = duration
-        output = f"{self.workdir}/video.mp4"
+        output = f"{self.workdir}/{self.basename}.mp4"
         if len(existing) == 1:
             argv = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i",
                     str(existing[0].path), "-c", "copy", "-movflags", "+faststart", output]
         else:
-            listing = f"{self.workdir}/segments.txt"
+            listing = f"{self.workdir}/{self.basename}.segments.txt"
             await self.transport.write_file(
                 listing, "".join(f"file '{s.path}'\n" for s in existing))
             argv = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "concat",
@@ -274,7 +285,7 @@ class X11Recorder(Recorder):
             for s in existing:
                 await self.transport.remove_file(str(s.path))
             if len(existing) > 1:
-                await self.transport.remove_file(f"{self.workdir}/segments.txt")
+                await self.transport.remove_file(listing)
             return self.video_path
         self.log("warning", "could not convert the video to MP4, kept the .mkv segments: "
                             f"{res.err.strip()[-300:]}")
@@ -286,6 +297,6 @@ class X11Recorder(Recorder):
             kept.append(local)
         return kept[0]
 
-    async def screenshot(self, path: Path) -> bool:
+    async def screenshot(self, path: Path, region: Region | None = None) -> bool:
         return await take_screenshot(self.display, path, self.transport, self.workdir,
-                                     self.env)
+                                     self.env, region)

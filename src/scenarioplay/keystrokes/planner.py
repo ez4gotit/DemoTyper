@@ -2,12 +2,14 @@
 
 With typos on, the plan sometimes types a wrong character (or skips, doubles or swaps
 one), keeps typing for a few characters, "notices", pauses, backspaces over everything since
-the mistake and retypes it. Whatever happens, replaying the events gives exactly the text.
+the mistake and retypes it. It may also occasionally backspace a whole finished word and
+retype it (`reword`). Whatever happens, replaying the events gives exactly the text.
 """
 
 from __future__ import annotations
 
 import random
+import re
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -15,6 +17,11 @@ from .layout import Layout, load_layout
 from .profiles import TypingParams
 
 PUNCTUATION = set(".,;:!?")
+# The pace variation of the first keystroke of a new word is boosted by this factor, so the
+# rhythm right after a space varies more than mid-word.
+NEW_WORD_JITTER = 1.6
+# Words and whitespace runs, in order.
+_TOKENS = re.compile(r"\S+|\s+")
 
 
 @dataclass(frozen=True)
@@ -43,19 +50,21 @@ class Typo:
 class Plan:
     events: list[Keystroke] = field(default_factory=list)
     typos: list[Typo] = field(default_factory=list)
+    rewords: list[str] = field(default_factory=list)   # words backspaced and retyped
 
 
 def think_time(text: str, p: TypingParams, rng: random.Random, speed: float = 1.0) -> float:
-    """Pause before starting to type a command."""
+    """Pause before starting to type a command (scaled by the pace, like the keystrokes)."""
     lo, hi = p.think_before
     t = rng.uniform(lo, hi)
     if len(text) > p.think_long_threshold:
         t *= 1.6
-    return t / speed
+    return t / (speed * p.speed)
 
 
 class _Typist:
-    """Keeps timing state (previous char, burst) while a plan is built."""
+    """Keeps timing state (previous char, burst) while a plan is built. `speed` is the
+    already-combined pace (external --speed * the typing `speed` parameter)."""
 
     def __init__(self, p: TypingParams, rng: random.Random, speed: float, layout: Layout):
         self.p, self.rng, self.speed, self.layout = p, rng, speed, layout
@@ -65,8 +74,9 @@ class _Typist:
 
     def char(self, ch: str, extra: float = 0.0) -> None:
         p, rng = self.p, self.rng
-        delay = (1.0 / p.cps) * max(0.25, rng.gauss(1.0, p.jitter)) if p.jitter > 0 \
-            else 1.0 / p.cps
+        # A new word (just after a space) gets more pace variation than mid-word.
+        jitter = p.jitter * (NEW_WORD_JITTER if self.prev == " " else 1.0)
+        delay = (1.0 / p.cps) * max(0.25, rng.gauss(1.0, jitter)) if jitter > 0 else 1.0 / p.cps
         if self.layout.is_shifted(ch):
             delay *= p.shifted_slowdown
         if self.prev == " ":
@@ -112,24 +122,16 @@ def _typo_options(text: str, i: int, layout: Layout, protect: set[str]
     return options
 
 
-def plan_line(text: str, p: TypingParams, rng: random.Random, speed: float = 1.0, *,
-              typos: bool = False) -> Plan:
-    """Plan the keystrokes for one line of text (no newlines)."""
-    if "\n" in text:
-        raise ValueError("plan_line takes one line; split on newlines first")
-    layout = load_layout(p.layout)
-    t = _Typist(p, rng, speed, layout)
-    plan = Plan()
-    tp = p.typos
-    allowed = typos and tp.enabled and tp.rate > 0 and len(text) >= tp.min_length
-    protect = set(tp.protect)
-    budget = tp.max_per_line
+def _type_word(t: _Typist, word: str, offset: int, tp, allowed: bool, budget: int,
+               protect: set[str], plan: Plan) -> int:
+    """Type one word (a run of non-space text), applying typos within it. Returns the
+    remaining typo budget. `offset` is the word's start index in the whole line."""
+    rng, layout = t.rng, t.layout
     i = 0
-    while i < len(text):
-        ch = text[i]
-        if (allowed and budget > 0 and ch != " " and ch not in protect
-                and rng.random() < tp.rate):
-            options = _typo_options(text, i, layout, protect)
+    while i < len(word):
+        ch = word[i]
+        if allowed and budget > 0 and ch not in protect and rng.random() < tp.rate:
+            options = _typo_options(word, i, layout, protect)
             weights = [tp.kinds.get(k, 0.0) for k in options]
             if options and sum(weights) > 0:
                 kind = rng.choices(list(options), weights=weights)[0]
@@ -138,23 +140,57 @@ def plan_line(text: str, p: TypingParams, rng: random.Random, speed: float = 1.0
                     typed = rng.choice([n for n in layout.neighbours(ch) if n not in protect])
                 elif kind == "missed":
                     typed = ""
-                # Keep typing correctly for a few characters before noticing.
                 lo, hi = tp.notice_after
                 if kind == "missed":
                     lo, hi = max(lo, 1), max(hi, 1)  # a gap only shows once past it
-                after = min(rng.randint(lo, hi), len(text) - (i + covers))
-                following = text[i + covers:i + covers + after]
+                after = min(rng.randint(lo, hi), len(word) - (i + covers))
+                following = word[i + covers:i + covers + after]
                 for c in typed + following:
                     t.char(c)
                 t.backspaces(len(typed) + len(following), rng.uniform(*tp.hesitation))
-                for c in text[i:i + covers + after]:
+                for c in word[i:i + covers + after]:
                     t.char(c)
-                plan.typos.append(Typo(i, kind, text[i:i + covers], typed, after))
+                plan.typos.append(Typo(offset + i, kind, word[i:i + covers], typed, after))
                 budget -= 1
                 i += covers + after
                 continue
         t.char(ch)
         i += 1
+    return budget
+
+
+def plan_line(text: str, p: TypingParams, rng: random.Random, speed: float = 1.0, *,
+              typos: bool = False) -> Plan:
+    """Plan the keystrokes for one line of text (no newlines).
+
+    `typos` gates all backspacing realism (typos and reword): it is set only where the line
+    is a shell command whose result is verified before Enter (spec 6.2), so a backspace can
+    never corrupt something that is not checked.
+    """
+    if "\n" in text:
+        raise ValueError("plan_line takes one line; split on newlines first")
+    layout = load_layout(p.layout)
+    t = _Typist(p, rng, speed * p.speed, layout)
+    plan = Plan()
+    tp = p.typos
+    typos_allowed = typos and tp.enabled and tp.rate > 0 and len(text) >= tp.min_length
+    reword_allowed = typos and p.reword.chance > 0
+    protect = set(tp.protect)
+    budget = tp.max_per_line
+    pos = 0
+    for token in _TOKENS.findall(text):
+        if token[0].isspace():
+            for ch in token:
+                t.char(ch)
+        else:
+            budget = _type_word(t, token, pos, tp, typos_allowed, budget, protect, plan)
+            if (reword_allowed and len(token) >= p.reword.min_length
+                    and rng.random() < p.reword.chance):
+                t.backspaces(len(token), rng.uniform(*p.reword.hesitation))
+                for ch in token:
+                    t.char(ch)
+                plan.rewords.append(token)
+        pos += len(token)
     plan.events = t.events
     return plan
 

@@ -36,7 +36,7 @@ finally: []                     # steps that always run at the end (not in the v
 | `record` | `guest` | Where the recorder runs: `guest` (inside the machine, native resolution) or `host` (captures the Workstation window; needed for `vm: revert/reboot` mid-take). |
 | `boot_timeout` | `180` | Seconds to wait for the guest after a start, revert or reboot. |
 | `terminal` | | `{command, font: Monospace, font_size: 16}`. Without `command`, the first installed of xterm, alacritty, kitty, gnome-terminal, xfce4-terminal and konsole. |
-| `recorder` | | `{backend: auto, display, fps: 30, crf: 23, codec: libx264, preset: veryfast, lead_in: 2, tail: 2, draw_mouse: false}`. |
+| `recorder` | | `{backend: auto, display, fps: 30, crf: 23, codec: libx264, preset: veryfast, lead_in: 2, tail: 2, draw_mouse: false, autostart: true}`. With `autostart: false`, nothing is recorded until a `record: start` step. |
 
 ## `defaults`
 
@@ -51,6 +51,7 @@ finally: []                     # steps that always run at the end (not in the v
 | `keep_video_on_fail` | `true` | Keep the video of a failed take. |
 | `clear_after_setup` | `true` | Clear the consoles after `setup`, so the video starts clean. |
 | `answers` | `[]` | Prompts answered automatically, such as the sudo password. |
+| `screenshots` | | `{chapters: none \| start \| end \| both, text: false}`: automatic screenshots at chapter boundaries, and whether every screenshot also saves the console text. |
 
 ## `consoles`
 

@@ -6,8 +6,11 @@ meta: { title: "…" }
 target:   { kind: local | vmware, vmx, snapshot, ssh: {host: auto, user, key, port},
             record: guest | host, boot_timeout: 180,
             terminal: {command, font, font_size},
-            recorder: {backend: auto|x11grab|wf-recorder, display, fps, crf, lead_in, tail} }
-defaults: { typing: {profile: novice|normal|expert|robot, cps, typos: {rate, seed}},
+            recorder: {backend: auto|x11grab|wf-recorder, display, fps, crf, lead_in, tail,
+                       autostart: true} }
+defaults: { typing: {profile: novice|normal|expert|robot, speed: 0.7, cps, word_pause,
+                     reword: {chance, hesitation}, typos: {rate, seed}},
+            screenshots: {chapters: none|start|end|both, text: false},
             prompt: '[$#%>] ?$', timeout: 60, after_command_pause: 1.0,
             on_fail: fail|continue|{retry: N}, answers: [{when: regex, secret|text}] }
 layout: single | split-horizontal | split-vertical | grid | tabs
@@ -49,8 +52,9 @@ finally: [ … ]    # always runs, not recorded
 - chapter: "Task 1: …"          # caption: "…"
 - caption: "…"                  # duration: 4
 - pause: 2
-- screenshot: name.png
-- record: pause | resume
+- screenshot: name.png           # or {file, console: logs, text: true}
+- record: pause | resume          # cut time out of the current video
+- record: stop | start            # separate video files; start takes clip: name
 - log: "…"                      # level: info
 ```
 

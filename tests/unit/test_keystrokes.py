@@ -7,7 +7,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from scenarioplay.keystrokes import plan_typing, resolve_typing, think_time
-from scenarioplay.keystrokes.planner import replay
+from scenarioplay.keystrokes.planner import plan_line, replay
 from scenarioplay.loader.model import TypingSpec
 
 line_text = st.text(
@@ -40,11 +40,66 @@ def test_robot_is_constant_speed():
 
 
 def test_mean_speed_close_to_cps():
-    p = resolve_typing([TypingSpec(cps=10, burst={"chance": 0}, word_pause=(0, 0),
+    p = resolve_typing([TypingSpec(cps=10, speed=1.0, burst={"chance": 0}, word_pause=(0, 0),
                                    punctuation_pause=(0, 0), shifted_slowdown=1)])
     events = plan_typing("abcdefghij" * 200, p, random.Random(7))
     mean = sum(ev.delay for ev in events) / len(events)
     assert mean == pytest.approx(0.1, rel=0.08)
+
+
+def test_default_speed_is_30_percent_slower():
+    """The default `speed` is 0.7, i.e. 30% slower than the raw profile pace."""
+    fast = resolve_typing([TypingSpec(profile="normal", jitter=0, word_pause=(0, 0),
+                                      burst={"chance": 0}, speed=1.0)])
+    default = resolve_typing([TypingSpec(profile="normal", jitter=0, word_pause=(0, 0),
+                                         burst={"chance": 0})])
+    assert default.speed == 0.7
+    a = plan_typing("abcdef", fast, random.Random(1))
+    b = plan_typing("abcdef", default, random.Random(1))
+    # every delay is 1/0.7 longer at the default pace
+    assert [x.delay / 0.7 for x in a] == pytest.approx([y.delay for y in b])
+
+
+def test_speed_parameter_scales_pace():
+    p = resolve_typing([TypingSpec(profile="robot", speed=2.0)])
+    events = plan_typing("hello", p, random.Random(1))
+    # robot base is 1/25 s; speed 2 halves it
+    assert events[0].delay == pytest.approx(1 / 25 / 2)
+
+
+def test_robot_keeps_exact_pace_by_default():
+    p = resolve_typing([TypingSpec(profile="robot")])
+    assert p.speed == 1.0            # robot opts out of the 30% slowdown
+    events = plan_typing("a b c", p, random.Random(1))
+    assert {round(e.delay, 9) for e in events} == {round(1 / p.cps, 9)}
+
+
+def test_reword_backspaces_and_retypes_a_word():
+    p = resolve_typing([TypingSpec(profile="normal", reword={"chance": 1.0, "min_length": 3},
+                                   typos={"enabled": False})])
+    plan = plan_line("install nginx", p, random.Random(1), typos=True)
+    assert plan.rewords  # at least one word reworded
+    assert replay(plan.events) == "install nginx"       # net text is unchanged
+    assert any(e.kind == "backspace" for e in plan.events)
+
+
+def test_reword_is_off_when_backspacing_is_unsafe():
+    p = resolve_typing([TypingSpec(profile="normal", reword={"chance": 1.0})])
+    plan = plan_line("install nginx", p, random.Random(1), typos=False)  # e.g. inside nano
+    assert plan.rewords == [] and not any(e.kind == "backspace" for e in plan.events)
+
+
+def test_new_word_has_more_pace_variation():
+    """The first keystroke after a space varies more than a mid-word keystroke."""
+    from statistics import pstdev
+    p = resolve_typing([TypingSpec(profile="normal", word_pause=(0, 0), speed=1.0,
+                                   typos={"enabled": False})])
+    after_space, mid_word = [], []
+    for seed in range(400):
+        ev = plan_typing("aa aa", p, random.Random(seed))  # index 3 is after the space
+        mid_word.append(ev[1].delay)      # second 'a', mid-word
+        after_space.append(ev[3].delay)   # first 'a' of the second word
+    assert pstdev(after_space) > pstdev(mid_word)
 
 
 def test_speed_scales_delays():

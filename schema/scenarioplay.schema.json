@@ -1647,6 +1647,9 @@
           },
           "title": "Answers",
           "type": "array"
+        },
+        "screenshots": {
+          "$ref": "#/$defs/ScreenshotDefaults"
         }
       },
       "title": "Defaults",
@@ -3625,7 +3628,7 @@
     },
     "RecordStep": {
       "additionalProperties": false,
-      "description": "Pause or resume the video (spec 10.1), e.g. around a long download. On resume a\ncaption says how much time was skipped; chapter times stay correct.",
+      "description": "Control the video at any point.\n\n`pause` / `resume` cut a stretch out of the current video (e.g. a long download); on\nresume a caption says how much time was skipped. `stop` / `start` end the current video\nfile and begin a new one: a take with several clips writes clips/NN-name.mp4, each with\nits own chapters and subtitles. With `target.recorder.autostart: false`, nothing is\nrecorded until the first `record: start`.",
       "properties": {
         "console": {
           "anyOf": [
@@ -3704,16 +3707,31 @@
         "record": {
           "enum": [
             "pause",
-            "resume"
+            "resume",
+            "start",
+            "stop"
           ],
           "title": "Record",
           "type": "string"
         },
         "caption": {
           "default": true,
+          "description": "On resume: add a subtitle saying how much time was skipped.",
           "title": "Caption",
-          "type": "boolean",
-          "description": "Subtitle text."
+          "type": "boolean"
+        },
+        "clip": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "On start: a name for the new clip (used in its file name).",
+          "title": "Clip"
         }
       },
       "required": [
@@ -3787,6 +3805,12 @@
         "draw_mouse": {
           "default": false,
           "title": "Draw Mouse",
+          "type": "boolean"
+        },
+        "autostart": {
+          "default": true,
+          "description": "Start recording with the first step. false: nothing is recorded until a `record: start` step.",
+          "title": "Autostart",
           "type": "boolean"
         }
       },
@@ -4119,6 +4143,66 @@
       "title": "RetryBlock",
       "type": "object"
     },
+    "RewordSpec": {
+      "additionalProperties": false,
+      "description": "Occasionally backspace a whole just-typed word and type it again, as a person\nsecond-guessing a word. Only where backspacing is safe (a shell command line).",
+      "properties": {
+        "chance": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Probability, per word, of retyping it.",
+          "title": "Chance"
+        },
+        "hesitation": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Pause before the backspacing, seconds (min, max).",
+          "title": "Hesitation"
+        },
+        "min_length": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Only reword words at least this long.",
+          "title": "Min Length"
+        }
+      },
+      "title": "RewordSpec",
+      "type": "object"
+    },
     "RunStep": {
       "additionalProperties": false,
       "description": "Type a command, press Enter and wait for the prompt (or for `expect` / `wait_for`).",
@@ -4270,9 +4354,82 @@
       "title": "RunStep",
       "type": "object"
     },
+    "ScreenshotDefaults": {
+      "additionalProperties": false,
+      "description": "Automatic screenshots, and what each screenshot saves.",
+      "properties": {
+        "chapters": {
+          "default": "none",
+          "description": "Take a screenshot when each chapter starts, ends, or both (named NN-<chapter>-start/end.png).",
+          "enum": [
+            "none",
+            "start",
+            "end",
+            "both"
+          ],
+          "title": "Chapters",
+          "type": "string"
+        },
+        "text": {
+          "default": false,
+          "description": "With every screenshot, also save the console text: HTML with colours and plain text.",
+          "title": "Text",
+          "type": "boolean"
+        }
+      },
+      "title": "ScreenshotDefaults",
+      "type": "object"
+    },
+    "ScreenshotSpec": {
+      "additionalProperties": false,
+      "description": "`screenshot: {file: x.png, console: logs, text: true}`",
+      "properties": {
+        "file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "File name (default: named after the step).",
+          "title": "File"
+        },
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Crop the picture to this console's pane.",
+          "title": "Console"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Also save the console text as .html (with colours) and .txt.",
+          "title": "Text"
+        }
+      },
+      "title": "ScreenshotSpec",
+      "type": "object"
+    },
     "ScreenshotStep": {
       "additionalProperties": false,
-      "description": "Save a PNG of the screen into the take's screenshots/ folder.",
+      "description": "Save a PNG of the screen into the take's screenshots/ folder. It works while\nrecording, while recording is stopped, and with --no-record. With `console` it crops to\nthat console's pane; with `text` it also saves the console text (HTML with colours, and\nplain text). A headless take has no screen, so it saves the text only.",
       "properties": {
         "console": {
           "anyOf": [
@@ -4356,10 +4513,26 @@
             {
               "const": true,
               "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/ScreenshotSpec"
             }
           ],
           "default": true,
           "title": "Screenshot"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Also save the console text as .html and .txt (default: defaults.screenshots.text).",
+          "title": "Text"
         }
       },
       "title": "ScreenshotStep",
@@ -5375,6 +5548,20 @@
           "default": null,
           "title": "Profile"
         },
+        "speed": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Overall pace multiplier: >1 faster, <1 slower. Default 0.7 (30 percent slower than the raw profile pace). Composes with --speed.",
+          "title": "Speed"
+        },
         "cps": {
           "anyOf": [
             {
@@ -5498,6 +5685,17 @@
           "anyOf": [
             {
               "$ref": "#/$defs/BurstSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reword": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RewordSpec"
             },
             {
               "type": "null"

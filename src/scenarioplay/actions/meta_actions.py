@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field, NonNegativeFloat, PositiveFloat
 
+from ..loader.model import Strict
 from ..plugins import action
 from .base import StepModel
 
@@ -66,6 +67,7 @@ class ChapterStep(StepModel):
 
     async def execute(self, ctx: RunContext) -> None:
         if ctx.section == "steps":
+            await ctx.begin_chapter(self.chapter)  # automatic screenshots, if configured
             ctx.reporter.chapter(self.chapter, self.caption)
         else:
             ctx.log("info", f"=== {ctx.section}: {self.chapter} (not recorded)")
@@ -90,20 +92,48 @@ class CaptionStep(StepModel):
 
 @action
 class RecordStep(StepModel):
-    """Pause or resume the video (spec 10.1), e.g. around a long download. On resume a
-    caption says how much time was skipped; chapter times stay correct."""
+    """Control the video at any point.
+
+    `pause` / `resume` cut a stretch out of the current video (e.g. a long download); on
+    resume a caption says how much time was skipped. `stop` / `start` end the current video
+    file and begin a new one: a take with several clips writes clips/NN-name.mp4, each with
+    its own chapters and subtitles. With `target.recorder.autostart: false`, nothing is
+    recorded until the first `record: start`."""
 
     KEYWORD = "record"
-    record: Literal["pause", "resume"]
-    caption: bool = True
+    record: Literal["pause", "resume", "start", "stop"]
+    caption: bool = Field(True, description="On resume: add a subtitle saying how much time "
+                                            "was skipped.")
+    clip: str | None = Field(None, description="On start: a name for the new clip (used in "
+                                               "its file name).")
+
+    def check(self, checker: Checker) -> None:
+        if self.clip is not None and self.record != "start":
+            checker.error(self, "`clip` names a clip on `record: start`", "clip")
 
     async def execute(self, ctx: RunContext) -> None:
         recorder = ctx.recorder
         if ctx.section != "steps":
             ctx.log("info", f"record: {self.record} ignored outside `steps` (not recorded)")
             return
-        if not recorder.segments:
+        if not ctx.opts.record:
             ctx.note(f"record: {self.record} (not recording in this take)")
+            return
+        if self.record == "start":
+            if await ctx.start_clip(self.clip):
+                ctx.note(f"recording started: clip {len(ctx.reporter.clips)}"
+                         + (f" ({self.clip})" if self.clip else ""))
+            else:
+                ctx.log("warning", "record: start, but a clip is already recording")
+            return
+        if self.record == "stop":
+            if await ctx.stop_clip():
+                ctx.note(f"recording stopped: clip {len(ctx.reporter.clips)} ends here")
+            else:
+                ctx.log("warning", "record: stop, but nothing is recording")
+            return
+        if not recorder.segments:
+            ctx.log("warning", f"record: {self.record}, but nothing is recording")
             return
         if self.record == "pause":
             if recorder.paused:
@@ -145,29 +175,58 @@ class LogStep(StepModel):
         ctx.log(self.level, self.log)
 
 
+class ScreenshotSpec(Strict):
+    """`screenshot: {file: x.png, console: logs, text: true}`"""
+
+    file: str | None = Field(None, description="File name (default: named after the step).")
+    console: str | None = Field(None, description="Crop the picture to this console's pane.")
+    text: bool | None = Field(None, description="Also save the console text as .html (with "
+                                                "colours) and .txt.")
+
+
 @action
 class ScreenshotStep(StepModel):
-    """Save a PNG of the screen into the take's screenshots/ folder."""
+    """Save a PNG of the screen into the take's screenshots/ folder. It works while
+    recording, while recording is stopped, and with --no-record. With `console` it crops to
+    that console's pane; with `text` it also saves the console text (HTML with colours, and
+    plain text). A headless take has no screen, so it saves the text only."""
 
     KEYWORD = "screenshot"
-    screenshot: str | Literal[True] = True
+    screenshot: str | Literal[True] | ScreenshotSpec = True
+    text: bool | None = Field(None, description="Also save the console text as .html and "
+                                                ".txt (default: defaults.screenshots.text).")
+
+    def summary(self) -> str:
+        spec = self._spec()
+        parts = [spec.file or "(named after the step)"]
+        if spec.console or self.console:
+            parts.append(f"console {spec.console or self.console}")
+        return "screenshot: " + ", ".join(parts)
+
+    def _spec(self) -> ScreenshotSpec:
+        if isinstance(self.screenshot, ScreenshotSpec):
+            return self.screenshot
+        return ScreenshotSpec(file=self.screenshot if isinstance(self.screenshot, str)
+                              else None)
 
     def check(self, checker: Checker) -> None:
-        if isinstance(self.screenshot, str) and not re.fullmatch(r"[\w.-]+", self.screenshot):
+        spec = self._spec()
+        if spec.file is not None and not re.fullmatch(r"[\w.-]+", spec.file):
             checker.error(self, "use a plain file name such as `after-install.png`",
                           "screenshot")
+        checker.check_console(self, spec.console, "screenshot")
+        if spec.console and self.console and spec.console != self.console:
+            checker.error(self, "give the console once: `console:` or inside `screenshot:`",
+                          "console")
 
     async def execute(self, ctx: RunContext) -> None:
-        name = self.screenshot if isinstance(self.screenshot, str) else \
-            f"step-{self.path_str().replace('.', '-')}.png"
-        if not name.endswith(".png"):
-            name += ".png"
-        path = ctx.take.dir / "screenshots" / name
-        if await ctx.screenshot(path):
-            ctx.note(f"screenshot saved: screenshots/{name}")
-            return
-        # No display (headless run): keep the console text instead.
-        console = ctx.console_for(self)
-        text = "\n".join(await console.capture())
-        ctx.reporter.write_text(f"screenshots/{name[:-4]}.txt", text + "\n")
-        ctx.note(f"no display to capture; saved console text as screenshots/{name[:-4]}.txt")
+        spec = self._spec()
+        name = spec.file or f"step-{self.path_str().replace('.', '-')}"
+        crop = spec.console or self.console
+        console = ctx.console_for(self, crop) if crop else None
+        text = spec.text if spec.text is not None else self.text
+        saved = await ctx.screenshot(name, console, text)
+        if saved:
+            ctx.note("screenshot saved: " + ", ".join(saved))
+        else:
+            ctx.log("warning", "screenshot: nothing could be saved")

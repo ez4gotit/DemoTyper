@@ -82,7 +82,9 @@ class Recorder:
         """Wall-clock time of the first frame, if known."""
         return self.segments[0].start if self.segments else None
 
-    async def screenshot(self, path: Path) -> bool:
+    async def screenshot(self, path: Path,
+                         region: tuple[int, int, int, int] | None = None) -> bool:
+        """Save a PNG of the screen; `region` = (x, y, width, height) crops it."""
         return False
 
 

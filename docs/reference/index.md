@@ -17,7 +17,7 @@ One page per action and control block, generated from the code (options, types, 
 - [`log`](log.md): Write a line to the take log only.
 - [`open_console`](open_console.md): Open a declared console mid-take (one with `start: false`, or one closed earlier).
 - [`pause`](pause.md): Wait a fixed number of seconds so the viewer can read (scaled by --speed).
-- [`record`](record.md): Pause or resume the video (spec 10.1), e.g.
+- [`record`](record.md): Control the video at any point.
 - [`run`](run.md): Type a command, press Enter and wait for the prompt (or for `expect` / `wait_for`).
 - [`screenshot`](screenshot.md): Save a PNG of the screen into the take's screenshots/ folder.
 - [`secret`](secret.md): Type a secret (a password) by name.

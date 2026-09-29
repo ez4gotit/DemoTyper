@@ -72,10 +72,26 @@ class BurstSpec(Strict):
     length: IntRange | None = None
 
 
+class RewordSpec(Strict):
+    """Occasionally backspace a whole just-typed word and type it again, as a person
+    second-guessing a word. Only where backspacing is safe (a shell command line)."""
+
+    chance: Annotated[float, Field(ge=0, le=1)] | None = Field(
+        None, description="Probability, per word, of retyping it.")
+    hesitation: Range | None = Field(
+        None, description="Pause before the backspacing, seconds (min, max).")
+    min_length: Annotated[int, Field(ge=1)] | None = Field(
+        None, description="Only reword words at least this long.")
+
+
 class TypingSpec(Strict):
     """Typing parameters; every field is optional so specs can be layered."""
 
     profile: Literal["novice", "normal", "expert", "robot"] | None = None
+    speed: PositiveFloat | None = Field(
+        None, description="Overall pace multiplier: >1 faster, <1 slower. Default 0.7 "
+                          "(30 percent slower than the raw profile pace). Composes with "
+                          "--speed.")
     cps: PositiveFloat | None = None
     jitter: Annotated[float, Field(ge=0, le=2)] | None = None
     word_pause: Range | None = None
@@ -84,6 +100,7 @@ class TypingSpec(Strict):
     think_before: Range | None = None
     think_long_threshold: Annotated[int, Field(ge=0)] | None = None
     burst: BurstSpec | None = None
+    reword: RewordSpec | None = None
     layout: str | None = None
     typos: TyposSpec | None = None
 
@@ -130,6 +147,9 @@ class RecorderSpec(Strict):
     lead_in: NonNegativeFloat = 2.0
     tail: NonNegativeFloat = 2.0
     draw_mouse: bool = False
+    autostart: bool = Field(
+        True, description="Start recording with the first step. false: nothing is recorded "
+                          "until a `record: start` step.")
 
 
 class TargetSpec(Strict):
@@ -194,6 +214,16 @@ class Meta(BaseModel):
     author: str | None = None
 
 
+class ScreenshotDefaults(Strict):
+    """Automatic screenshots, and what each screenshot saves."""
+
+    chapters: Literal["none", "start", "end", "both"] = Field(
+        "none", description="Take a screenshot when each chapter starts, ends, or both "
+                            "(named NN-<chapter>-start/end.png).")
+    text: bool = Field(False, description="With every screenshot, also save the console text: "
+                                          "HTML with colours and plain text.")
+
+
 class Defaults(Strict):
     typing: TypingSpec | None = None
     prompt: Regex = DEFAULT_PROMPT
@@ -207,6 +237,7 @@ class Defaults(Strict):
     )
     answers: list[AnswerRule] = Field(
         default_factory=list, description="Prompts answered automatically in every console.")
+    screenshots: ScreenshotDefaults = Field(default_factory=ScreenshotDefaults)
 
 
 class ConsoleSpec(Strict):

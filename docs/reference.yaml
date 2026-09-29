@@ -19,8 +19,8 @@ main:
   assert: "Expression or condition that must hold."
   exec: "Shell command, run out of view."
   log: "Text for the take log."
-  screenshot: "File name, or true for a name based on the step."
-  record: "pause or resume."
+  screenshot: "File name, true (named after the step), or {file, console, text}."
+  record: "pause, resume, start or stop."
   use: "Console name."
   focus: "Console name."
   open_console: "Name of a declared console."
@@ -222,9 +222,16 @@ actions:
       - |
         - screenshot: after-install.png
       - |
+        - screenshot:                # only the `logs` console, plus its text
+            file: access-log.png
+            console: logs
+            text: true
+      - |
         - screenshot: true           # named after the step
     mistakes:
-      - "Without a display (`--headless`), the console text is saved instead of a PNG."
+      - "Without a display (`--headless`), the console text is saved (.html and .txt) instead of a PNG."
+      - "Cropping to a console needs recording inside the machine (`record: guest`); host recording saves the whole VM window."
+      - "For a screenshot at every chapter, set `defaults.screenshots.chapters` instead of adding steps."
   record:
     examples:
       - |
@@ -233,12 +240,20 @@ actions:
           timeout: 1800
         - record: resume             # adds a "(12 min 05 s skipped)" subtitle
       - |
-        - record: pause
-        - run: "make -j8"
-        - record: resume
-          caption: false
+        # target.recorder.autostart: false - nothing is recorded before this
+        - run: "cd ~/lab && git pull"
+        - record: start
+          clip: install
+        - run: "make install"
+        - record: stop               # clips/01-install.mp4
+        - run: "make test"           # not in any video
+        - record: start
+          clip: results              # clips/02-results.mp4
+        - run: "cat report.txt"
     mistakes:
-      - "Pausing twice, or resuming without pausing first, only logs a warning."
+      - "`pause`/`resume` cuts time out of one video. `stop`/`start` makes separate video files, each with its own chapters and subtitles."
+      - "Pausing twice, starting while recording, or stopping when nothing records only logs a warning."
+      - "A chapter step that runs while recording is stopped opens the next clip at 0:00."
   use:
     examples:
       - |

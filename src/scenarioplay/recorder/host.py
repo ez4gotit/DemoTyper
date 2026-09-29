@@ -24,8 +24,10 @@ def default_source(vm_name: str | None) -> str:
 
 
 class HostRecorder(X11Recorder):
-    def __init__(self, spec: RecorderSpec, source: str, take_dir: Path, log: Log):
-        super().__init__(spec, source, take_dir, log, transport=LocalTransport())
+    def __init__(self, spec: RecorderSpec, source: str, take_dir: Path, log: Log,
+                 basename: str = "video"):
+        super().__init__(spec, source, take_dir, log, transport=LocalTransport(),
+                         basename=basename)
         self.windows = sys.platform == "win32"
 
     def grab_input(self) -> list[str]:
@@ -38,7 +40,12 @@ class HostRecorder(X11Recorder):
         if not self.windows:
             await super()._warn_if_black()
 
-    async def screenshot(self, path: Path) -> bool:
+    async def screenshot(self, path: Path,
+                         region: tuple[int, int, int, int] | None = None) -> bool:
+        if region is not None:
+            # The guest's pane sits somewhere inside the VM window, at an unknown offset.
+            self.log("info", "host recording: screenshots show the whole VM window "
+                             "(cropping to one console needs `record: guest`)")
         if not self.windows:
             return await super().screenshot(path)
         path.parent.mkdir(parents=True, exist_ok=True)
