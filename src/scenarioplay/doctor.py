@@ -30,6 +30,44 @@ def _run(argv: list[str], timeout: float = 10) -> tuple[int, str]:
     return res.returncode, (res.stdout + res.stderr).strip()
 
 
+def run_host_checks(vmx: str | None, key: str | None) -> list[Check]:
+    """The VMware host side (spec 4): vmrun, the VM, ssh key, and ffmpeg for mode B.
+    The guest itself is checked when a take starts (tmux, terminal, desktop, recorder)."""
+    from .target.vmrun import find_vmrun
+
+    checks = [Check("Python 3.10+", sys.version_info >= (3, 10), sys.version.split()[0])]
+    try:
+        import asyncssh
+
+        checks.append(Check("asyncssh", True, asyncssh.__version__))
+    except ImportError:
+        checks.append(Check("asyncssh", False, "not installed (pip install asyncssh)"))
+    vmrun = find_vmrun(os.environ.get("SCENARIOPLAY_VMRUN"))
+    checks.append(Check("vmrun", bool(vmrun), vmrun or "not found (install VMware "
+                                                         "Workstation or set SCENARIOPLAY_VMRUN)"))
+    if vmrun:
+        rc, out = _run([vmrun, "-T", "ws", "list"], timeout=60)
+        checks.append(Check("vmrun list", rc == 0, out.splitlines()[0] if out else str(rc)))
+    if vmx:
+        exists = os.path.exists(vmx)
+        checks.append(Check(f"VM {vmx}", exists, "found" if exists else "no such file"))
+        if exists and vmrun:
+            rc, out = _run([vmrun, "-T", "ws", "listSnapshots", vmx], timeout=60)
+            snaps = [s.strip() for s in out.splitlines()[1:] if s.strip()]
+            checks.append(Check("snapshots", rc == 0, ", ".join(snaps) or "none",
+                                required=False))
+    if key:
+        path = os.path.expanduser(key)
+        checks.append(Check(f"ssh key {key}", os.path.exists(path),
+                            "found" if os.path.exists(path) else "missing"))
+    grabber = "gdigrab" if sys.platform == "win32" else "x11grab"
+    rc, out = _run(["ffmpeg", "-hide_banner", "-devices"])
+    checks.append(Check(f"ffmpeg with {grabber} (host recording, mode B)",
+                        rc == 0 and grabber in out, "ok" if rc == 0 and grabber in out
+                        else "missing", required=False))
+    return checks
+
+
 def run_checks(display: str | None) -> list[Check]:
     checks = [Check("Python 3.10+", sys.version_info >= (3, 10), sys.version.split()[0]),
               Check("Linux", sys.platform == "linux", sys.platform)]

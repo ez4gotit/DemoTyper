@@ -12,29 +12,37 @@ import io
 import os
 import re
 import secrets
+import shutil
 import signal
 import sys
 import tempfile
 import time
 import traceback
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from ruamel.yaml import YAML
 
 from ..console import Session
+from ..console.cast import CastRecorder
 from ..console.session import SESSION
 from ..console.terminal import TerminalWindow
 from ..errors import ControlSignal, EnvironmentProblem, StepAbort, StopTake
 from ..exitcodes import ExitCode
 from ..loader import ParsedScenario
 from ..loader.load import resolve_includes
-from ..recorder import NullRecorder, Recorder, X11Recorder, take_screenshot
+from ..recorder import NullRecorder, Recorder, X11Recorder
+from ..recorder.host import HostRecorder, default_source
+from ..recorder.wayland import WfRecorder
 from ..report import Reporter
 from ..secretstore import load_secrets, referenced_secrets
-from ..transport import LocalTransport
+from ..target.vmrun import display_name
+from ..target.vmware import VMwareTarget
+from ..transport import LocalTransport, Transport
 from .context import RunContext, RunOptions, TakeInfo
 from .engine import Engine
+from .selection import select
 
 
 def slug(text: str) -> str:
@@ -52,20 +60,34 @@ class Take:
         self.info = TakeInfo(self.id, self.dir, now.isoformat(timespec="seconds"))
         self.reporter = Reporter(self.dir, verbose=opts.verbose)
         target = parsed.model.target
-        self.display = opts.display or target.recorder.display or os.environ.get("DISPLAY")
-        self.headless = opts.headless or (not opts.record and not self.display)
+        self.kind = opts.target_kind or target.kind
+        if self.kind == "vmware":
+            # The guest's display; the runner reaches it over SSH.
+            self.display = opts.display if target.record == "guest" and opts.display \
+                else (target.recorder.display or ":0")
+            self.headless = opts.headless
+            self.runtime_dir = f"/tmp/scenarioplay-{self.id}"
+        else:
+            self.display = opts.display or target.recorder.display or os.environ.get("DISPLAY")
+            self.headless = opts.headless or (not opts.record and not self.display)
+            self.runtime_dir = os.path.join(
+                os.environ.get("XDG_RUNTIME_DIR") or tempfile.gettempdir(),
+                f"scenarioplay-{self.id}")
         self.recorder: Recorder = NullRecorder()
         self.recording = False
         self.session: Session | None = None
         self.terminal: TerminalWindow | None = None
         self.ctx: RunContext | None = None
         self.engine: Engine | None = None
-        self.runtime_dir = os.path.join(
-            os.environ.get("XDG_RUNTIME_DIR") or tempfile.gettempdir(), f"scenarioplay-{self.id}")
+        self.vm: VMwareTarget | None = None
+        self.earlier_text: dict[str, list[str]] = {}  # console text from before a vm reboot
+        self.transport: Transport | None = None
+        self.x_env: dict[str, str] = {}
         self.status = "success"
         self.exit = ExitCode.OK
         self.failure: dict[str, Any] | None = None
         self.initial_vars: dict[str, Any] | None = None
+        self.casts: CastRecorder | None = None
         self._interrupted = False
         self._task: asyncio.Task[Any] | None = None
 
@@ -77,16 +99,23 @@ class Take:
     async def run(self) -> int:
         self._task = asyncio.current_task()
         loop = asyncio.get_running_loop()
+        previous = None
         try:
             loop.add_signal_handler(signal.SIGINT, self._on_sigint)
         except (NotImplementedError, RuntimeError):
-            pass
+            # Windows (runner on a VMware host): no loop signal handlers; hand Ctrl+C over.
+            previous = signal.signal(
+                signal.SIGINT, lambda *_: loop.call_soon_threadsafe(self._on_sigint))
         self.log("info", f"take {self.id}: {self.parsed.file} -> {self.dir}")
         try:
             await self._play()
         except StopTake as e:
             if e.status == "success":
                 self.log("info", f"stopped early: {e}")
+            elif e.status == "interrupted":
+                self.status, self.exit = "interrupted", ExitCode.INTERRUPTED
+                self.failure = {"error": str(e)}
+                self.log("warning", f"stopped: {e}")
             else:
                 self.status, self.exit = "failed", ExitCode.STEP_FAILED
                 self.failure = {"error": self.reporter.mask(str(e))}
@@ -117,7 +146,8 @@ class Take:
             try:
                 loop.remove_signal_handler(signal.SIGINT)
             except (NotImplementedError, RuntimeError):
-                pass
+                if previous is not None:
+                    signal.signal(signal.SIGINT, previous)
             self.reporter.close()
         return int(self.exit)
 
@@ -132,14 +162,16 @@ class Take:
     async def _play(self) -> None:
         parsed, opts = self.parsed, self.opts
         target = parsed.model.target
-        if sys.platform != "linux":
-            raise EnvironmentProblem("the local target runs on the Linux machine itself; run "
-                                     "scenarioplay there (for example in WSL)")
-        if target.kind != "local":
-            raise EnvironmentProblem("the vmware target is planned for phase 4")
-        if opts.record and not self.display:
-            raise EnvironmentProblem("no X display to record ($DISPLAY is not set); pass "
-                                     "--display, or rehearse with --no-record")
+        if self.kind == "local":
+            if sys.platform != "linux":
+                raise EnvironmentProblem(
+                    "the local target runs on the Linux machine itself; run scenarioplay "
+                    "there (for example in WSL), or use the vmware target from this host")
+            if opts.record and not self.display and self._backend() == "x11grab":
+                raise EnvironmentProblem("no X display to record ($DISPLAY is not set); pass "
+                                         "--display, or rehearse with --no-record")
+        elif not target.vmx:
+            raise EnvironmentProblem("--target vmware needs target.vmx in the scenario")
         # Resolve secrets before touching anything, so a missing one costs nothing.
         secret_values = load_secrets(referenced_secrets(parsed), opts.secrets_file, self.log)
         for value in secret_values.values():
@@ -147,25 +179,22 @@ class Take:
         if secret_values:
             self.log("info", f"secrets loaded: {', '.join(sorted(secret_values))}")
 
-        transport = LocalTransport()
-        self.session = Session(transport, self.runtime_dir, self.id, self.log)
-        await self.session.create(parsed.model, opts.width, opts.height)
-        if not self.headless:
-            assert self.display
-            attach = self.session.tmux.argv("attach-session", "-t", SESSION)
-            self.terminal = TerminalWindow(target.terminal, attach, self.display)
-            await self.terminal.open()
-            await self.session.wait_attached()
-            await self.session.arrange()  # pane sizes for the terminal's real size
+        if self.kind == "vmware":
+            self.vm = VMwareTarget(target, self.log)
+            transport: Transport = await self.vm.prepare()
+            self.x_env = self.vm.x_env
         else:
-            self.log("info", "headless: no terminal window (attach with: "
-                             f"tmux -L {self.session.tmux.socket} attach)")
-        await self.session.wait_ready()
+            transport = LocalTransport()
+        self.transport = transport
+        await self._open_consoles(transport, list(c.name for c in parsed.model.consoles
+                                                  if c.start))
 
         self.ctx = RunContext(parsed, opts, self.info, self.reporter, self.session,
                               self.recorder, None if self.headless else self.display)
         self.ctx.secrets = secret_values
         self.ctx.make_scope(parsed.model.vars, opts.cli_vars, opts.vars_file)
+        self.ctx.restart_guest = self.restart_guest
+        self.ctx.vm = self.vm
         self.initial_vars = self.ctx.scope.snapshot()
         self.engine = Engine(self.ctx)
 
@@ -177,23 +206,108 @@ class Take:
                 await self.session.clear()
 
         if opts.record:
-            assert self.display
-            recorder = X11Recorder(target.recorder, self.display, self.dir, self.log)
+            recorder = self._make_recorder()
             recorder.on_death = self._task.cancel if self._task else None
             self.recorder = recorder
             self.ctx.recorder = recorder
             await recorder.start()
             self.recording = True
+            self.reporter.timeline.segments = recorder.segments  # updated in place
         self.reporter.timeline.t0 = self.recorder.frame0_wall() or time.time()
+        if opts.cast:
+            self.casts = CastRecorder(self.runtime_dir)
+            for console in self.session.consoles.values():
+                await self.casts.start(console, self.reporter.timeline.t0 or time.time(),
+                                       parsed.title)
         if self.recording:
             # The lead-in counts from the first frame, which ffmpeg captured a moment
             # before it reported it.
             elapsed = time.time() - self.reporter.timeline.t0
             await asyncio.sleep(max(0.0, target.recorder.lead_in - elapsed))
+        steps = parsed.sections["steps"]
+        first, stop = select(steps, opts.from_name, opts.to_name)
+        if (first, stop) != (0, len(steps)):
+            self.log("info", f"running steps {first + 1}-{stop} of {len(steps)} "
+                             f"(--from/--to); `setup` and `finally` run as usual")
         self.log("info", "--- steps")
-        await self.engine.run_section("steps", parsed.sections["steps"])
+        await self.engine.run_section("steps", steps[first:stop])
         if self.recording:
             await asyncio.sleep(target.recorder.tail)
+
+    async def _open_consoles(self, transport: Transport, names: list[str]) -> None:
+        """tmux session, terminal window, first prompts. Also used after a guest revert."""
+        target = self.parsed.model.target
+        self.session = Session(transport, self.runtime_dir, self.id, self.log)
+        model = self.parsed.model
+        if set(names) != {c.name for c in model.consoles if c.start}:
+            # After a revert: reopen the consoles that were open, not the declared set.
+            starts = {c.name: c.name in names for c in model.consoles}
+            consoles = [c.model_copy(update={"start": starts[c.name]}) for c in model.consoles]
+            first = next(c for c in consoles if c.start)
+            consoles.remove(first)
+            consoles.insert(0, first)
+            model = model.model_copy(update={"consoles": consoles})
+        await self.session.create(model, self.opts.width, self.opts.height)
+        if not self.headless:
+            assert self.display
+            attach = self.session.tmux.argv("attach-session", "-t", SESSION)
+            self.terminal = TerminalWindow(target.terminal, attach, self.display, transport,
+                                           self.x_env)
+            await self.terminal.open()
+            await self.session.wait_attached()
+            await self.session.arrange()  # pane sizes for the terminal's real size
+        else:
+            self.log("info", "headless: no terminal window (attach with: "
+                             f"tmux -L {self.session.tmux.socket} attach)")
+        await self.session.wait_ready()
+
+    def _make_recorder(self) -> Recorder:
+        target = self.parsed.model.target
+        if self.kind == "vmware" and target.record == "host":
+            assert self.vm is not None and target.vmx
+            source = self.opts.display or default_source(display_name(target.vmx))
+            self.log("info", f"recording on the host (mode B): {source}")
+            return HostRecorder(target.recorder, source, self.dir, self.log)
+        cls = WfRecorder if self._backend() == "wf-recorder" else X11Recorder
+        return cls(target.recorder, self.display or "", self.dir, self.log,
+                   transport=self.transport, workdir=self.runtime_dir, env=self.x_env)
+
+    def _backend(self) -> str:
+        backend = self.parsed.model.target.recorder.backend
+        if backend != "auto":
+            return backend
+        # A local Wayland session with wf-recorder installed; otherwise X11. (WSLg sets
+        # WAYLAND_DISPLAY but has no wf-recorder, and its X display records black.)
+        if self.kind == "local" and os.environ.get("WAYLAND_DISPLAY") \
+                and shutil.which("wf-recorder"):
+            return "wf-recorder"
+        return "x11grab"
+
+    async def restart_guest(self, kind: str, snapshot: str | None) -> None:
+        """`vm: revert` / `vm: reboot` mid-take (spec 4.4): wait for the guest, then rebuild
+        the tmux session, the consoles that were open and the terminal window."""
+        assert self.vm is not None and self.session is not None and self.ctx is not None
+        open_names = list(self.session.consoles)
+        current = self.ctx.current
+        # The guest's tmux goes away with the revert/reboot: keep what the consoles showed.
+        for name, console in self.session.all_consoles().items():
+            try:
+                lines = await console.history()
+            except EnvironmentProblem:
+                continue
+            while lines and not lines[-1].strip():
+                lines.pop()
+            self.earlier_text.setdefault(name, []).extend(
+                [*lines, f"--- vm {kind} ---"])
+        if self.terminal is not None:
+            await self.terminal.close()
+        self.transport = await self.vm.restart(kind, snapshot)
+        self.x_env = self.vm.x_env
+        await self._open_consoles(self.transport, open_names)
+        self.ctx.session = self.session
+        if current in self.session.consoles:
+            self.ctx.current = current
+        self.log("info", f"guest back after {kind}; consoles rebuilt: {', '.join(open_names)}")
 
     async def _collect_evidence(self, abort: StepAbort) -> None:
         """Spec 12: screenshot, every console's text, the step, its expected condition and
@@ -208,9 +322,9 @@ class Take:
             "error": mask(str(error)),
             **details,
         }
-        if self.recording and self.display:
+        if self.recording:
             path = self.dir / "screenshots" / "failure.png"
-            if await take_screenshot(self.display, path):
+            if await self.recorder.screenshot(path):
                 self.failure["screenshot"] = "screenshots/failure.png"
         if self.session is None:
             return
@@ -233,15 +347,21 @@ class Take:
     async def _wrap_up(self) -> None:
         if self.recording:
             await self.recorder.stop()
+        if self.casts is not None and self.session is not None:
+            for console in self.session.all_consoles().values():
+                await self.casts.stop(console)
         if self.session is not None and self.engine is not None:
             await self._run_finally()
             await self._write_transcripts()
+            await self._save_casts()
         keep_video = self.status == "success" or self.parsed.model.defaults.keep_video_on_fail
+        # finalize() replaces the segments' estimated start times with the exact ones, which
+        # the timeline (sharing the list) uses for chapters and subtitles.
         video = await self.recorder.finalize(keep_video)
-        if self.recorder.frame0_wall():
-            self.reporter.timeline.t0 = self.recorder.frame0_wall()
         self._write_resolved()
         self.reporter.write_outputs(self._summary(video.name if video else None))
+        if video is not None and video.suffix == ".mp4" and self.opts.burn_subtitles:
+            await self._burn_subtitles(video)
         if self.status == "success":
             self.log("info", f"take finished: {self.dir}")
         else:
@@ -274,7 +394,41 @@ class Take:
                 continue
             while lines and not lines[-1].strip():
                 lines.pop()
+            lines = [*self.earlier_text.get(name, []), *lines]
             self.reporter.write_text(f"transcript/{name}.txt", "\n".join(lines) + "\n")
+
+    async def _save_casts(self) -> None:
+        if self.casts is None or self.session is None:
+            return
+        transport = self.session.transport
+        (self.dir / "cast").mkdir(exist_ok=True)
+        for name, remote in self.casts.files.items():
+            text = await transport.read_file(remote)
+            if text is not None:
+                self.reporter.write_text(f"cast/{name}.cast", text)
+
+    async def _burn_subtitles(self, video: Path) -> None:
+        """`--burn-subtitles` (spec 10.3): video.mp4 gets the subtitles drawn in; the
+        original is kept as video.clean.mp4."""
+        if not (self.dir / "subtitles.srt").exists():
+            self.log("info", "no subtitles to burn in")
+            return
+        clean = self.dir / "video.clean.mp4"
+        video.rename(clean)
+        spec = self.parsed.model.target.recorder
+        proc = await asyncio.create_subprocess_exec(
+            "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", clean.name,
+            "-vf", "subtitles=subtitles.srt:force_style='FontSize=22,MarginV=28'",
+            "-c:v", spec.codec, "-preset", spec.preset, "-crf", str(spec.crf),
+            "-pix_fmt", "yuv420p", "-movflags", "+faststart", video.name,
+            cwd=self.dir, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
+        _, err = await proc.communicate()
+        if proc.returncode == 0:
+            self.log("info", "subtitles burned into video.mp4 (original: video.clean.mp4)")
+        else:
+            clean.rename(video)
+            self.log("warning", "could not burn in the subtitles (ffmpeg needs libass): "
+                                f"{err.decode(errors='replace').strip()[-300:]}")
 
     def _write_resolved(self) -> None:
         """Spec 10.2: the scenario with includes inlined and `vars` holding the values the
@@ -317,6 +471,8 @@ class Take:
                 await self.session.transport.remove_tree(self.runtime_dir)
         if self.terminal is not None and not self.opts.keep_session:
             await self.terminal.close()
+        if self.transport is not None and not self.transport.is_local:
+            await self.transport.close()
 
 
 async def run_take(parsed: ParsedScenario, opts: RunOptions) -> int:

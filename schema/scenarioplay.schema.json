@@ -56,14 +56,16 @@
       },
       "minItems": 1,
       "title": "Steps",
-      "type": "array"
+      "type": "array",
+      "description": "The steps to run."
     },
     "finally": {
       "items": {
         "$ref": "#/$defs/Step"
       },
       "title": "Finally",
-      "type": "array"
+      "type": "array",
+      "description": "Steps that always run afterwards."
     }
   },
   "required": [
@@ -87,7 +89,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "interval": {
           "anyOf": [
@@ -100,7 +103,8 @@
             }
           ],
           "default": null,
-          "title": "Interval"
+          "title": "Interval",
+          "description": "Seconds between checks (default 0.2)."
         },
         "scope": {
           "anyOf": [
@@ -116,7 +120,8 @@
             }
           ],
           "default": null,
-          "title": "Scope"
+          "title": "Scope",
+          "description": "since_last_input (default): only output after the last input; screen: the whole visible screen."
         },
         "on_timeout": {
           "anyOf": [
@@ -133,7 +138,8 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "fail (default), continue, retry (wait once more), or a list of steps to run."
         },
         "console": {
           "anyOf": [
@@ -145,7 +151,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "as": {
           "anyOf": [
@@ -157,7 +164,8 @@
             }
           ],
           "default": null,
-          "title": "As"
+          "title": "As",
+          "description": "Name stored in last.matched when this branch of `any` matches."
         },
         "all": {
           "type": "array",
@@ -235,7 +243,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "interval": {
           "anyOf": [
@@ -248,7 +257,8 @@
             }
           ],
           "default": null,
-          "title": "Interval"
+          "title": "Interval",
+          "description": "Seconds between checks (default 0.2)."
         },
         "scope": {
           "anyOf": [
@@ -264,7 +274,8 @@
             }
           ],
           "default": null,
-          "title": "Scope"
+          "title": "Scope",
+          "description": "since_last_input (default): only output after the last input; screen: the whole visible screen."
         },
         "on_timeout": {
           "anyOf": [
@@ -281,7 +292,8 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "fail (default), continue, retry (wait once more), or a list of steps to run."
         },
         "console": {
           "anyOf": [
@@ -293,7 +305,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "as": {
           "anyOf": [
@@ -305,7 +318,8 @@
             }
           ],
           "default": null,
-          "title": "As"
+          "title": "As",
+          "description": "Name stored in last.matched when this branch of `any` matches."
         },
         "any": {
           "type": "array",
@@ -334,7 +348,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -347,7 +362,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -366,10 +382,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -392,7 +409,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "assert": {
           "description": "An expression such as `x == 1`, or a condition checked once.",
@@ -418,7 +436,8 @@
             }
           ],
           "default": null,
-          "title": "Message"
+          "title": "Message",
+          "description": "Text for the log and the report."
         }
       },
       "required": [
@@ -441,7 +460,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -454,7 +474,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -473,10 +494,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -499,7 +521,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "break": {
           "const": true,
@@ -583,7 +606,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -596,7 +620,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -615,10 +640,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -641,7 +667,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "call": {
           "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
@@ -651,7 +678,8 @@
         "with": {
           "additionalProperties": true,
           "title": "With",
-          "type": "object"
+          "type": "object",
+          "description": "Values for the block's parameters."
         }
       },
       "required": [
@@ -674,7 +702,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -687,7 +716,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -706,10 +736,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -732,18 +763,21 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "caption": {
           "minLength": 1,
           "title": "Caption",
-          "type": "string"
+          "type": "string",
+          "description": "Subtitle text."
         },
         "duration": {
           "default": 4.0,
           "exclusiveMinimum": 0,
           "title": "Duration",
-          "type": "number"
+          "type": "number",
+          "description": "Seconds the subtitle stays on screen."
         }
       },
       "required": [
@@ -822,7 +856,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -835,7 +870,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -854,10 +890,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -880,7 +917,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "capture": {
           "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
@@ -897,7 +935,8 @@
             }
           ],
           "default": null,
-          "title": "Regex"
+          "title": "Regex",
+          "description": "Regular expression; the first group (or the whole match) is kept."
         },
         "group": {
           "anyOf": [
@@ -912,7 +951,8 @@
             }
           ],
           "default": null,
-          "title": "Group"
+          "title": "Group",
+          "description": "Which regex group to keep (number or name)."
         },
         "lines": {
           "anyOf": [
@@ -925,7 +965,8 @@
             }
           ],
           "default": null,
-          "title": "Lines"
+          "title": "Lines",
+          "description": "Keep only the last N lines."
         },
         "from": {
           "default": "output",
@@ -935,7 +976,8 @@
             "last_output"
           ],
           "title": "From",
-          "type": "string"
+          "type": "string",
+          "description": "output (since the last input), screen, or last_output (of the last run)."
         }
       },
       "required": [
@@ -958,7 +1000,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -971,7 +1014,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -990,10 +1034,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -1016,7 +1061,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "chapter": {
           "minLength": 1,
@@ -1033,7 +1079,8 @@
             }
           ],
           "default": null,
-          "title": "Caption"
+          "title": "Caption",
+          "description": "Subtitle text."
         }
       },
       "required": [
@@ -1056,7 +1103,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -1069,7 +1117,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -1088,10 +1137,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -1114,13 +1164,16 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "wait_for": {
-          "$ref": "#/$defs/Condition"
+          "$ref": "#/$defs/Condition",
+          "description": "After the input, wait for this condition instead of the default."
         },
         "expect": {
-          "$ref": "#/$defs/Condition"
+          "$ref": "#/$defs/Condition",
+          "description": "Same as wait_for; a plain string is a regex."
         },
         "typing": {
           "anyOf": [
@@ -1131,7 +1184,8 @@
               "type": "null"
             }
           ],
-          "default": null
+          "default": null,
+          "description": "Typing speed and realism for this step (see defaults.typing)."
         },
         "typos": {
           "anyOf": [
@@ -1150,7 +1204,8 @@
             }
           ],
           "default": null,
-          "title": "Typos"
+          "title": "Typos",
+          "description": "off turns auto-typos off for this step (on cannot force them where they are switched off)."
         },
         "clear": {
           "anyOf": [
@@ -1190,7 +1245,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -1203,7 +1259,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -1222,10 +1279,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -1248,7 +1306,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "close_console": {
           "title": "Close Console",
@@ -1441,7 +1500,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -1454,7 +1514,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -1473,10 +1534,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -1499,7 +1561,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "continue": {
           "const": true,
@@ -1603,7 +1666,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -1616,7 +1680,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -1635,10 +1700,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -1661,7 +1727,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "define": {
           "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
@@ -1673,13 +1740,15 @@
             "type": "string"
           },
           "title": "Params",
-          "type": "array"
+          "type": "array",
+          "description": "Parameter names; `call` gives each a value with `with`."
         },
         "steps": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/Step"
-          }
+          },
+          "description": "The steps to run."
         }
       },
       "required": [
@@ -1703,7 +1772,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -1716,7 +1786,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -1735,10 +1806,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -1761,13 +1833,16 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "wait_for": {
-          "$ref": "#/$defs/Condition"
+          "$ref": "#/$defs/Condition",
+          "description": "After the input, wait for this condition instead of the default."
         },
         "expect": {
-          "$ref": "#/$defs/Condition"
+          "$ref": "#/$defs/Condition",
+          "description": "Same as wait_for; a plain string is a regex."
         },
         "enter": {
           "anyOf": [
@@ -1780,7 +1855,8 @@
             }
           ],
           "default": true,
-          "title": "Enter"
+          "title": "Enter",
+          "description": "Press Enter after typing."
         }
       },
       "title": "EnterStep",
@@ -1804,7 +1880,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "interval": {
           "anyOf": [
@@ -1817,7 +1894,8 @@
             }
           ],
           "default": null,
-          "title": "Interval"
+          "title": "Interval",
+          "description": "Seconds between checks (default 0.2)."
         },
         "scope": {
           "anyOf": [
@@ -1833,7 +1911,8 @@
             }
           ],
           "default": null,
-          "title": "Scope"
+          "title": "Scope",
+          "description": "since_last_input (default): only output after the last input; screen: the whole visible screen."
         },
         "on_timeout": {
           "anyOf": [
@@ -1850,7 +1929,8 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "fail (default), continue, retry (wait once more), or a list of steps to run."
         },
         "console": {
           "anyOf": [
@@ -1862,7 +1942,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "as": {
           "anyOf": [
@@ -1874,7 +1955,8 @@
             }
           ],
           "default": null,
-          "title": "As"
+          "title": "As",
+          "description": "Name stored in last.matched when this branch of `any` matches."
         },
         "exec": {
           "title": "Exec",
@@ -1901,7 +1983,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -1914,7 +1997,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -1933,10 +2017,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -1959,7 +2044,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "exec": {
           "title": "Exec",
@@ -1981,7 +2067,8 @@
         "check_exit": {
           "default": false,
           "title": "Check Exit",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Fail the step when the command exits with a non-zero code."
         },
         "cwd": {
           "anyOf": [
@@ -1993,7 +2080,8 @@
             }
           ],
           "default": null,
-          "title": "Cwd"
+          "title": "Cwd",
+          "description": "Directory to run in."
         }
       },
       "required": [
@@ -2017,7 +2105,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "interval": {
           "anyOf": [
@@ -2030,7 +2119,8 @@
             }
           ],
           "default": null,
-          "title": "Interval"
+          "title": "Interval",
+          "description": "Seconds between checks (default 0.2)."
         },
         "scope": {
           "anyOf": [
@@ -2046,7 +2136,8 @@
             }
           ],
           "default": null,
-          "title": "Scope"
+          "title": "Scope",
+          "description": "since_last_input (default): only output after the last input; screen: the whole visible screen."
         },
         "on_timeout": {
           "anyOf": [
@@ -2063,7 +2154,8 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "fail (default), continue, retry (wait once more), or a list of steps to run."
         },
         "console": {
           "anyOf": [
@@ -2075,7 +2167,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "as": {
           "anyOf": [
@@ -2087,7 +2180,8 @@
             }
           ],
           "default": null,
-          "title": "As"
+          "title": "As",
+          "description": "Name stored in last.matched when this branch of `any` matches."
         },
         "file": {
           "title": "File",
@@ -2114,7 +2208,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -2127,7 +2222,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -2146,10 +2242,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -2172,7 +2269,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "focus": {
           "title": "Focus",
@@ -2188,7 +2286,8 @@
             }
           ],
           "default": null,
-          "title": "Zoom"
+          "title": "Zoom",
+          "description": "true: the pane fills the screen; false: back to the layout."
         }
       },
       "required": [
@@ -2211,7 +2310,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -2224,7 +2324,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -2243,10 +2344,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -2269,7 +2371,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "for_each": {
           "anyOf": [
@@ -2287,13 +2390,15 @@
           "default": "item",
           "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
           "title": "As",
-          "type": "string"
+          "type": "string",
+          "description": "Name stored in last.matched when this branch of `any` matches."
         },
         "steps": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/Step"
-          }
+          },
+          "description": "The steps to run."
         }
       },
       "required": [
@@ -2318,7 +2423,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "interval": {
           "anyOf": [
@@ -2331,7 +2437,8 @@
             }
           ],
           "default": null,
-          "title": "Interval"
+          "title": "Interval",
+          "description": "Seconds between checks (default 0.2)."
         },
         "scope": {
           "anyOf": [
@@ -2347,7 +2454,8 @@
             }
           ],
           "default": null,
-          "title": "Scope"
+          "title": "Scope",
+          "description": "since_last_input (default): only output after the last input; screen: the whole visible screen."
         },
         "on_timeout": {
           "anyOf": [
@@ -2364,7 +2472,8 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "fail (default), continue, retry (wait once more), or a list of steps to run."
         },
         "console": {
           "anyOf": [
@@ -2376,7 +2485,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "as": {
           "anyOf": [
@@ -2388,7 +2498,8 @@
             }
           ],
           "default": null,
-          "title": "As"
+          "title": "As",
+          "description": "Name stored in last.matched when this branch of `any` matches."
         },
         "gone": {
           "title": "Gone",
@@ -2416,7 +2527,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "interval": {
           "anyOf": [
@@ -2429,7 +2541,8 @@
             }
           ],
           "default": null,
-          "title": "Interval"
+          "title": "Interval",
+          "description": "Seconds between checks (default 0.2)."
         },
         "scope": {
           "anyOf": [
@@ -2445,7 +2558,8 @@
             }
           ],
           "default": null,
-          "title": "Scope"
+          "title": "Scope",
+          "description": "since_last_input (default): only output after the last input; screen: the whole visible screen."
         },
         "on_timeout": {
           "anyOf": [
@@ -2462,7 +2576,8 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "fail (default), continue, retry (wait once more), or a list of steps to run."
         },
         "console": {
           "anyOf": [
@@ -2474,7 +2589,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "as": {
           "anyOf": [
@@ -2486,7 +2602,8 @@
             }
           ],
           "default": null,
-          "title": "As"
+          "title": "As",
+          "description": "Name stored in last.matched when this branch of `any` matches."
         },
         "idle": {
           "exclusiveMinimum": 0,
@@ -2514,7 +2631,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -2527,7 +2645,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -2546,10 +2665,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -2572,7 +2692,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "if": {
           "description": "An expression such as `x == 1`, or a condition checked once.",
@@ -2592,7 +2713,8 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/Step"
-          }
+          },
+          "description": "Steps to run when the condition holds."
         },
         "elif": {
           "type": "array",
@@ -2625,13 +2747,15 @@
                 }
               }
             }
-          }
+          },
+          "description": "More branches: a list of {if, then}."
         },
         "else": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/Step"
-          }
+          },
+          "description": "Steps to run when no condition holds."
         }
       },
       "required": [
@@ -2655,7 +2779,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -2668,7 +2793,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -2687,10 +2813,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -2713,7 +2840,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "include": {
           "title": "Include",
@@ -2740,7 +2868,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -2753,7 +2882,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -2772,10 +2902,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -2798,13 +2929,16 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "wait_for": {
-          "$ref": "#/$defs/Condition"
+          "$ref": "#/$defs/Condition",
+          "description": "After the input, wait for this condition instead of the default."
         },
         "expect": {
-          "$ref": "#/$defs/Condition"
+          "$ref": "#/$defs/Condition",
+          "description": "Same as wait_for; a plain string is a regex."
         },
         "key": {
           "title": "Key",
@@ -2814,7 +2948,8 @@
           "default": 1,
           "exclusiveMinimum": 0,
           "title": "Repeat",
-          "type": "integer"
+          "type": "integer",
+          "description": "Press the key this many times."
         }
       },
       "required": [
@@ -2837,7 +2972,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -2850,7 +2986,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -2869,10 +3006,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -2895,7 +3033,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "log": {
           "title": "Log",
@@ -2910,7 +3049,8 @@
             "error"
           ],
           "title": "Level",
-          "type": "string"
+          "type": "string",
+          "description": "Log level."
         }
       },
       "required": [
@@ -2998,7 +3138,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -3011,7 +3152,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -3030,10 +3172,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -3056,7 +3199,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "open_console": {
           "title": "Open Console",
@@ -3083,7 +3227,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -3096,7 +3241,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -3115,10 +3261,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -3141,7 +3288,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "parallel": {
           "items": {
@@ -3158,7 +3306,8 @@
             "any"
           ],
           "title": "Wait",
-          "type": "string"
+          "type": "string",
+          "description": "all: end when every branch is done; any: end when the first is done and stop the others."
         }
       },
       "required": [
@@ -3181,7 +3330,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -3194,7 +3344,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -3213,10 +3364,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -3239,7 +3391,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "pause": {
           "minimum": 0,
@@ -3268,7 +3421,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "interval": {
           "anyOf": [
@@ -3281,7 +3435,8 @@
             }
           ],
           "default": null,
-          "title": "Interval"
+          "title": "Interval",
+          "description": "Seconds between checks (default 0.2)."
         },
         "scope": {
           "anyOf": [
@@ -3297,7 +3452,8 @@
             }
           ],
           "default": null,
-          "title": "Scope"
+          "title": "Scope",
+          "description": "since_last_input (default): only output after the last input; screen: the whole visible screen."
         },
         "on_timeout": {
           "anyOf": [
@@ -3314,7 +3470,8 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "fail (default), continue, retry (wait once more), or a list of steps to run."
         },
         "console": {
           "anyOf": [
@@ -3326,7 +3483,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "as": {
           "anyOf": [
@@ -3338,7 +3496,8 @@
             }
           ],
           "default": null,
-          "title": "As"
+          "title": "As",
+          "description": "Name stored in last.matched when this branch of `any` matches."
         },
         "port": {
           "anyOf": [
@@ -3373,7 +3532,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "interval": {
           "anyOf": [
@@ -3386,7 +3546,8 @@
             }
           ],
           "default": null,
-          "title": "Interval"
+          "title": "Interval",
+          "description": "Seconds between checks (default 0.2)."
         },
         "scope": {
           "anyOf": [
@@ -3402,7 +3563,8 @@
             }
           ],
           "default": null,
-          "title": "Scope"
+          "title": "Scope",
+          "description": "since_last_input (default): only output after the last input; screen: the whole visible screen."
         },
         "on_timeout": {
           "anyOf": [
@@ -3419,7 +3581,8 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "fail (default), continue, retry (wait once more), or a list of steps to run."
         },
         "console": {
           "anyOf": [
@@ -3431,7 +3594,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "as": {
           "anyOf": [
@@ -3443,7 +3607,8 @@
             }
           ],
           "default": null,
-          "title": "As"
+          "title": "As",
+          "description": "Name stored in last.matched when this branch of `any` matches."
         },
         "prompt": {
           "const": true,
@@ -3458,14 +3623,115 @@
         "prompt"
       ]
     },
+    "RecordStep": {
+      "additionalProperties": false,
+      "description": "Pause or resume the video (spec 10.1), e.g. around a long download. On resume a\ncaption says how much time was skipped; chapter times stay correct.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
+        },
+        "when": {
+          "description": "Run the step only if this expression or condition holds.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
+        },
+        "record": {
+          "enum": [
+            "pause",
+            "resume"
+          ],
+          "title": "Record",
+          "type": "string"
+        },
+        "caption": {
+          "default": true,
+          "title": "Caption",
+          "type": "boolean",
+          "description": "Subtitle text."
+        }
+      },
+      "required": [
+        "record"
+      ],
+      "title": "RecordStep",
+      "type": "object"
+    },
     "RecorderSpec": {
       "additionalProperties": false,
       "properties": {
         "backend": {
           "default": "auto",
+          "description": "auto: x11grab, or wf-recorder on a Wayland session that has it.",
           "enum": [
             "auto",
-            "x11grab"
+            "x11grab",
+            "wf-recorder"
           ],
           "title": "Backend",
           "type": "string"
@@ -3480,7 +3746,7 @@
             }
           ],
           "default": null,
-          "description": "X display to record; default $DISPLAY.",
+          "description": "X display to record (default $DISPLAY), or for wf-recorder an output name such as eDP-1.",
           "title": "Display"
         },
         "fps": {
@@ -3542,7 +3808,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "interval": {
           "anyOf": [
@@ -3555,7 +3822,8 @@
             }
           ],
           "default": null,
-          "title": "Interval"
+          "title": "Interval",
+          "description": "Seconds between checks (default 0.2)."
         },
         "scope": {
           "anyOf": [
@@ -3571,7 +3839,8 @@
             }
           ],
           "default": null,
-          "title": "Scope"
+          "title": "Scope",
+          "description": "since_last_input (default): only output after the last input; screen: the whole visible screen."
         },
         "on_timeout": {
           "anyOf": [
@@ -3588,7 +3857,8 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "fail (default), continue, retry (wait once more), or a list of steps to run."
         },
         "console": {
           "anyOf": [
@@ -3600,7 +3870,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "as": {
           "anyOf": [
@@ -3612,11 +3883,13 @@
             }
           ],
           "default": null,
-          "title": "As"
+          "title": "As",
+          "description": "Name stored in last.matched when this branch of `any` matches."
         },
         "regex": {
           "title": "Regex",
-          "type": "string"
+          "type": "string",
+          "description": "Regular expression; the first group (or the whole match) is kept."
         }
       },
       "required": [
@@ -3639,7 +3912,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -3652,7 +3926,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -3671,10 +3946,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -3697,7 +3973,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "repeat": {
           "anyOf": [
@@ -3709,13 +3986,15 @@
               "type": "string"
             }
           ],
-          "title": "Repeat"
+          "title": "Repeat",
+          "description": "Press the key this many times."
         },
         "steps": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/Step"
-          }
+          },
+          "description": "The steps to run."
         }
       },
       "required": [
@@ -3739,7 +4018,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -3752,7 +4032,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -3771,10 +4052,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -3797,7 +4079,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "retry": {
           "exclusiveMinimum": 0,
@@ -3808,7 +4091,8 @@
           "default": 1.0,
           "minimum": 0,
           "title": "Delay",
-          "type": "number"
+          "type": "number",
+          "description": "Seconds to wait between passes."
         },
         "on_exhausted": {
           "default": "fail",
@@ -3817,13 +4101,15 @@
             "continue"
           ],
           "title": "On Exhausted",
-          "type": "string"
+          "type": "string",
+          "description": "fail (default) or continue when the limit is reached."
         },
         "steps": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/Step"
-          }
+          },
+          "description": "The steps to run."
         }
       },
       "required": [
@@ -3847,7 +4133,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -3860,7 +4147,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -3879,10 +4167,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -3905,13 +4194,16 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "wait_for": {
-          "$ref": "#/$defs/Condition"
+          "$ref": "#/$defs/Condition",
+          "description": "After the input, wait for this condition instead of the default."
         },
         "expect": {
-          "$ref": "#/$defs/Condition"
+          "$ref": "#/$defs/Condition",
+          "description": "Same as wait_for; a plain string is a regex."
         },
         "typing": {
           "anyOf": [
@@ -3922,7 +4214,8 @@
               "type": "null"
             }
           ],
-          "default": null
+          "default": null,
+          "description": "Typing speed and realism for this step (see defaults.typing)."
         },
         "typos": {
           "anyOf": [
@@ -3941,7 +4234,8 @@
             }
           ],
           "default": null,
-          "title": "Typos"
+          "title": "Typos",
+          "description": "off turns auto-typos off for this step (on cannot force them where they are switched off)."
         },
         "run": {
           "title": "Run",
@@ -3950,7 +4244,8 @@
         "check_exit": {
           "default": false,
           "title": "Check Exit",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Fail the step when the command exits with a non-zero code."
         },
         "capture": {
           "anyOf": [
@@ -3989,7 +4284,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -4002,7 +4298,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -4021,10 +4318,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -4047,7 +4345,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "screenshot": {
           "anyOf": [
@@ -4083,7 +4382,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -4096,7 +4396,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -4115,10 +4416,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -4141,13 +4443,16 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "wait_for": {
-          "$ref": "#/$defs/Condition"
+          "$ref": "#/$defs/Condition",
+          "description": "After the input, wait for this condition instead of the default."
         },
         "expect": {
-          "$ref": "#/$defs/Condition"
+          "$ref": "#/$defs/Condition",
+          "description": "Same as wait_for; a plain string is a regex."
         },
         "typing": {
           "anyOf": [
@@ -4158,7 +4463,8 @@
               "type": "null"
             }
           ],
-          "default": null
+          "default": null,
+          "description": "Typing speed and realism for this step (see defaults.typing)."
         },
         "typos": {
           "anyOf": [
@@ -4177,7 +4483,8 @@
             }
           ],
           "default": null,
-          "title": "Typos"
+          "title": "Typos",
+          "description": "off turns auto-typos off for this step (on cannot force them where they are switched off)."
         },
         "secret": {
           "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
@@ -4187,12 +4494,14 @@
         "enter": {
           "default": false,
           "title": "Enter",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Press Enter after typing."
         },
         "hidden": {
           "default": true,
           "title": "Hidden",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Wait until the terminal hides input (a password prompt) before typing."
         }
       },
       "required": [
@@ -4215,7 +4524,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -4228,7 +4538,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -4247,10 +4558,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -4273,7 +4585,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "set": {
           "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
@@ -4282,7 +4595,8 @@
         },
         "value": {
           "default": null,
-          "title": "Value"
+          "title": "Value",
+          "description": "The value; a single {{ expr }} keeps its type (a list stays a list)."
         }
       },
       "required": [
@@ -4342,6 +4656,19 @@
           "description": "The ssh client to run.",
           "title": "Program",
           "type": "string"
+        },
+        "known_hosts": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "~/.ssh/known_hosts",
+          "description": "Host keys to check the guest against (vmware target); `none` accepts any key.",
+          "title": "Known Hosts"
         }
       },
       "title": "SshSpec",
@@ -4414,6 +4741,9 @@
           "$ref": "#/$defs/PauseStep"
         },
         {
+          "$ref": "#/$defs/RecordStep"
+        },
+        {
           "$ref": "#/$defs/RepeatBlock"
         },
         {
@@ -4447,6 +4777,9 @@
           "$ref": "#/$defs/UseStep"
         },
         {
+          "$ref": "#/$defs/VmStep"
+        },
+        {
           "$ref": "#/$defs/WaitForStep"
         },
         {
@@ -4468,7 +4801,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -4481,7 +4815,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -4500,10 +4835,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -4526,7 +4862,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "stop": {
           "enum": [
@@ -4546,7 +4883,8 @@
             }
           ],
           "default": null,
-          "title": "Message"
+          "title": "Message",
+          "description": "Text for the log and the report."
         }
       },
       "required": [
@@ -4680,7 +5018,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "interval": {
           "anyOf": [
@@ -4693,7 +5032,8 @@
             }
           ],
           "default": null,
-          "title": "Interval"
+          "title": "Interval",
+          "description": "Seconds between checks (default 0.2)."
         },
         "scope": {
           "anyOf": [
@@ -4709,7 +5049,8 @@
             }
           ],
           "default": null,
-          "title": "Scope"
+          "title": "Scope",
+          "description": "since_last_input (default): only output after the last input; screen: the whole visible screen."
         },
         "on_timeout": {
           "anyOf": [
@@ -4726,7 +5067,8 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "fail (default), continue, retry (wait once more), or a list of steps to run."
         },
         "console": {
           "anyOf": [
@@ -4738,7 +5080,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "as": {
           "anyOf": [
@@ -4750,7 +5093,8 @@
             }
           ],
           "default": null,
-          "title": "As"
+          "title": "As",
+          "description": "Name stored in last.matched when this branch of `any` matches."
         },
         "text": {
           "title": "Text",
@@ -4777,7 +5121,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -4790,7 +5135,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -4809,10 +5155,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -4835,7 +5182,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "try": {
           "type": "array",
@@ -4847,13 +5195,15 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/Step"
-          }
+          },
+          "description": "Steps to run when a step in `try` fails; {{ error.message }} and {{ error.step }} are set."
         },
         "finally": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/Step"
-          }
+          },
+          "description": "Steps that always run afterwards."
         }
       },
       "required": [
@@ -4876,7 +5226,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -4889,7 +5240,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -4908,10 +5260,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -4934,13 +5287,16 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "wait_for": {
-          "$ref": "#/$defs/Condition"
+          "$ref": "#/$defs/Condition",
+          "description": "After the input, wait for this condition instead of the default."
         },
         "expect": {
-          "$ref": "#/$defs/Condition"
+          "$ref": "#/$defs/Condition",
+          "description": "Same as wait_for; a plain string is a regex."
         },
         "typing": {
           "anyOf": [
@@ -4951,7 +5307,8 @@
               "type": "null"
             }
           ],
-          "default": null
+          "default": null,
+          "description": "Typing speed and realism for this step (see defaults.typing)."
         },
         "typos": {
           "anyOf": [
@@ -4970,7 +5327,8 @@
             }
           ],
           "default": null,
-          "title": "Typos"
+          "title": "Typos",
+          "description": "off turns auto-typos off for this step (on cannot force them where they are switched off)."
         },
         "type": {
           "title": "Type",
@@ -4979,7 +5337,8 @@
         "enter": {
           "default": false,
           "title": "Enter",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Press Enter after typing."
         },
         "enter_newlines": {
           "default": false,
@@ -5355,7 +5714,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -5368,7 +5728,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -5387,10 +5748,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -5413,18 +5775,21 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "max_iterations": {
           "exclusiveMinimum": 0,
           "title": "Max Iterations",
-          "type": "integer"
+          "type": "integer",
+          "description": "Upper limit of passes, so a take can never hang (required)."
         },
         "delay": {
           "default": 0.0,
           "minimum": 0,
           "title": "Delay",
-          "type": "number"
+          "type": "number",
+          "description": "Seconds to wait between passes."
         },
         "on_exhausted": {
           "default": "fail",
@@ -5433,13 +5798,15 @@
             "continue"
           ],
           "title": "On Exhausted",
-          "type": "string"
+          "type": "string",
+          "description": "fail (default) or continue when the limit is reached."
         },
         "steps": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/Step"
-          }
+          },
+          "description": "The steps to run."
         },
         "until": {
           "description": "An expression such as `x == 1`, or a condition checked once.",
@@ -5478,7 +5845,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -5491,7 +5859,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -5510,10 +5879,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -5536,7 +5906,8 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "use": {
           "title": "Use",
@@ -5547,6 +5918,113 @@
         "use"
       ],
       "title": "UseStep",
+      "type": "object"
+    },
+    "VmStep": {
+      "additionalProperties": false,
+      "description": "VMware control mid-take (spec 4.4): `vm: snapshot`, `vm: revert` or `vm: reboot`.\n\n`snapshot` takes a snapshot named `name`; `revert` goes back to `name` (default:\ntarget.snapshot). After a revert or reboot the runner waits for the guest and rebuilds\nthe consoles. In `steps`, revert and reboot need host-side recording\n(`target.record: host`), because they would kill a recorder inside the guest.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
+        },
+        "when": {
+          "description": "Run the step only if this expression or condition holds.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
+        },
+        "vm": {
+          "enum": [
+            "snapshot",
+            "revert",
+            "reboot"
+          ],
+          "title": "Vm",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name",
+          "description": "A name (snapshot name for `vm`)."
+        }
+      },
+      "required": [
+        "vm"
+      ],
+      "title": "VmStep",
       "type": "object"
     },
     "WaitForStep": {
@@ -5563,7 +6041,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -5576,7 +6055,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -5595,10 +6075,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -5621,10 +6102,12 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "wait_for": {
-          "$ref": "#/$defs/Condition"
+          "$ref": "#/$defs/Condition",
+          "description": "After the input, wait for this condition instead of the default."
         }
       },
       "required": [
@@ -5647,7 +6130,8 @@
             }
           ],
           "default": null,
-          "title": "Console"
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
         },
         "timeout": {
           "anyOf": [
@@ -5660,7 +6144,8 @@
             }
           ],
           "default": null,
-          "title": "Timeout"
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
         },
         "on_fail": {
           "anyOf": [
@@ -5679,10 +6164,11 @@
                 "$ref": "#/$defs/Step"
               }
             }
-          ]
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
         },
         "when": {
-          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "description": "Run the step only if this expression or condition holds.",
           "anyOf": [
             {
               "type": "string"
@@ -5705,18 +6191,21 @@
             }
           ],
           "default": null,
-          "title": "Label"
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
         },
         "max_iterations": {
           "exclusiveMinimum": 0,
           "title": "Max Iterations",
-          "type": "integer"
+          "type": "integer",
+          "description": "Upper limit of passes, so a take can never hang (required)."
         },
         "delay": {
           "default": 0.0,
           "minimum": 0,
           "title": "Delay",
-          "type": "number"
+          "type": "number",
+          "description": "Seconds to wait between passes."
         },
         "on_exhausted": {
           "default": "fail",
@@ -5725,13 +6214,15 @@
             "continue"
           ],
           "title": "On Exhausted",
-          "type": "string"
+          "type": "string",
+          "description": "fail (default) or continue when the limit is reached."
         },
         "steps": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/Step"
-          }
+          },
+          "description": "The steps to run."
         },
         "while": {
           "description": "An expression such as `x == 1`, or a condition checked once.",

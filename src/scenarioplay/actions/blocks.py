@@ -127,6 +127,7 @@ class RepeatBlock(BlockStep):
     """Repeat the steps a fixed number of times."""
 
     KEYWORD = "repeat"
+    PRIORITY = 1  # also an option of `key`
     IS_LOOP = True
     STEP_LIST_FIELDS = ("steps",)
 

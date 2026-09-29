@@ -116,15 +116,36 @@ def validate(file: Path, var_pairs: tuple[str, ...], vars_file: Path | None) -> 
               type=click.Path(exists=True, dir_okay=False, path_type=Path),
               help="YAML file of NAME: value secrets (otherwise read from the environment).")
 @click.option("--keep-session", is_flag=True, help="Leave the tmux session running.")
+@click.option("--from", "from_name", metavar="NAME",
+              help="Start at the step with this label, or this chapter.")
+@click.option("--to", "to_name", metavar="NAME",
+              help="Stop after this labelled step, or after this whole chapter.")
+@click.option("--step", "step_mode", is_flag=True,
+              help="Ask before each step: Enter runs it, s skips, c continues, q quits.")
+@click.option("--burn-subtitles", is_flag=True,
+              help="Draw chapter titles and captions into the video.")
+@click.option("--cast", is_flag=True, help="Also write an asciinema .cast per console.")
+@click.option("--target", "target_kind", type=click.Choice(["local", "vmware"]),
+              help="Override target.kind (for example rehearse a vmware scenario locally).")
 @click.option("-v", "--verbose", is_flag=True, help="Debug log: every wait and poll.")
 @with_var_options
 def run(file: Path, dry_run: bool, no_record: bool, headless: bool, speed: float,
         out_dir: Path, display: str | None, size: str, typos_rate: float | None,
         no_typos: bool, secrets_file: Path | None, keep_session: bool,
-        verbose: bool, var_pairs: tuple[str, ...], vars_file: Path | None) -> None:
+        from_name: str | None, to_name: str | None, step_mode: bool, burn_subtitles: bool,
+        cast: bool, target_kind: str | None, verbose: bool, var_pairs: tuple[str, ...],
+        vars_file: Path | None) -> None:
     """Play a scenario and record a take."""
     cli_vars, file_vars = _parse_vars(var_pairs, vars_file)
     parsed = _load_or_exit(file, set(cli_vars) | set(file_vars))
+    if from_name or to_name:
+        from .engine.selection import select
+
+        try:
+            select(parsed.sections["steps"], from_name, to_name)
+        except ValueError as e:
+            click.secho(f"{file}: {e}", fg="red", err=True)
+            sys.exit(ExitCode.VALIDATION)
     if dry_run:
         from .engine.plan import format_plan
 
@@ -143,9 +164,58 @@ def run(file: Path, dry_run: bool, no_record: bool, headless: bool, speed: float
                       keep_session=keep_session, verbose=verbose, headless=headless,
                       display=display, width=cols, height=rows, typos_rate=typos_rate,
                       no_typos=no_typos, secrets_file=secrets_file, cli_vars=cli_vars,
-                      vars_file=file_vars)
+                      vars_file=file_vars, from_name=from_name, to_name=to_name,
+                      step_mode=step_mode, burn_subtitles=burn_subtitles, cast=cast,
+                      target_kind=target_kind)
     code = asyncio.run(run_take(parsed, opts))
     sys.exit(code)
+
+
+@main.command()
+@click.argument("file", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--takes", type=click.IntRange(min=2), default=10, show_default=True)
+@click.option("--no-record", is_flag=True, help="Play without recording.")
+@click.option("--headless", is_flag=True, help="No terminal window; implies --no-record.")
+@click.option("--speed", type=click.FloatRange(min=0.05), default=1.0, show_default=True)
+@click.option("--out", "out_dir", type=click.Path(file_okay=False, path_type=Path),
+              default=Path("takes/soak"), show_default=True)
+@click.option("--secrets", "secrets_file",
+              type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--target", "target_kind", type=click.Choice(["local", "vmware"]))
+@with_var_options
+def soak(file: Path, takes: int, no_record: bool, headless: bool, speed: float,
+         out_dir: Path, secrets_file: Path | None, target_kind: str | None,
+         var_pairs: tuple[str, ...], vars_file: Path | None) -> None:
+    """Run a scenario several times; succeed only if every take passes and all follow the
+    same sequence of steps (spec 13). With a VMware snapshot, each take starts from it."""
+    cli_vars, file_vars = _parse_vars(var_pairs, vars_file)
+    parsed = _load_or_exit(file, set(cli_vars) | set(file_vars))
+    from .engine.context import RunOptions
+    from .engine.take import run_take
+    from .soak import SoakResult, record
+
+    result = SoakResult()
+    for i in range(1, takes + 1):
+        out = out_dir / f"take-{i:02d}"
+        opts = RunOptions(record=not (no_record or headless), speed=speed, out_dir=out,
+                          headless=headless, secrets_file=secrets_file, cli_vars=cli_vars,
+                          vars_file=file_vars, target_kind=target_kind)
+        click.secho(f"--- take {i}/{takes}", fg="cyan", err=True)
+        code = asyncio.run(run_take(parsed, opts))
+        record(result, next(out.iterdir()), code)
+    click.echo(result.summary())
+    sys.exit(ExitCode.OK if result.ok else ExitCode.STEP_FAILED)
+
+
+@main.command("gen-docs", hidden=True)
+@click.option("--docs", "docs_dir", type=click.Path(file_okay=False, path_type=Path),
+              default=Path("docs"), show_default=True)
+def gen_docs(docs_dir: Path) -> None:
+    """Regenerate the wiki's reference pages from the code and docs/reference.yaml."""
+    from .docsgen import write
+
+    for path in write(docs_dir):
+        click.echo(path)
 
 
 @main.command()
@@ -158,12 +228,19 @@ def schema() -> None:
 
 @main.command()
 @click.option("--display", help="X display to check (default $DISPLAY).")
-def doctor(display: str | None) -> None:
-    """Check that tmux, ffmpeg, the display and a terminal emulator are ready."""
-    from .doctor import run_checks
+@click.option("--target", "target_kind", type=click.Choice(["local", "vmware"]),
+              default="local", show_default=True,
+              help="local: this Linux machine. vmware: this machine as the VMware host.")
+@click.option("--vmx", help="With --target vmware: the VM to check.")
+@click.option("--key", help="With --target vmware: the ssh key to check.")
+def doctor(display: str | None, target_kind: str, vmx: str | None, key: str | None) -> None:
+    """Check that tmux, ffmpeg, the display and a terminal emulator are ready (local), or
+    that vmrun, the VM and the ssh key are (vmware host)."""
+    from .doctor import run_checks, run_host_checks
 
     failed = False
-    for check in run_checks(display):
+    checks = run_checks(display) if target_kind == "local" else run_host_checks(vmx, key)
+    for check in checks:
         if check.ok:
             mark, color = "ok  ", "green"
         elif check.required:

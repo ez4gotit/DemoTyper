@@ -64,6 +64,22 @@ def test_timeline():
     assert t.video_time(99) == 0
 
 
+def test_timeline_with_paused_segments():
+    from pathlib import Path
+
+    from scenarioplay.recorder.base import Segment
+
+    t = Timeline()
+    t.segments = [Segment(Path("a"), start=100.0, end=110.0),
+                  Segment(Path("b"), start=130.0)]            # paused 110 -> 130
+    assert t.t0 == 100.0
+    assert t.video_time(105) == 5
+    assert t.video_time(120) == 10          # during the pause: where the video resumes
+    assert t.video_time(131.5) == 11.5
+    t.segments[0].duration = 9.8            # exact length after finalize wins
+    assert t.video_time(131.5) == 11.3
+
+
 def test_masker():
     m = Masker()
     m.register("hunter2")

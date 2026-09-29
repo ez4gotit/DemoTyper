@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 import time
 from typing import TYPE_CHECKING
 
-from ..errors import ControlSignal, StepAbort, StepFailed
+from ..errors import ControlSignal, StepAbort, StepFailed, StopTake
 from ..lang import ExprError
 from ..loader.model import OnFailRetry
 from ..report import StepRecord
@@ -14,6 +15,15 @@ from ..report import StepRecord
 if TYPE_CHECKING:
     from ..actions.base import StepModel
     from .context import RunContext
+
+
+def _read_answer(prompt: str) -> str:
+    sys.stderr.write(prompt)
+    sys.stderr.flush()
+    line = sys.stdin.readline()
+    if not line:
+        raise EOFError
+    return line
 
 
 class Engine:
@@ -44,6 +54,11 @@ class Engine:
             if when is not None and not await ctx.check(when, step):
                 record.status = "skipped"
                 ctx.log("info", "  skipped (`when` is false)")
+                return
+            if ctx.opts.step_mode and ctx.section == "steps" and not step.IS_BLOCK \
+                    and not await self._ask(step):
+                record.status = "skipped"
+                ctx.log("info", "  skipped at the --step prompt")
                 return
             await self._run_with_policy(step, record)
         except ControlSignal:
@@ -89,6 +104,24 @@ class Engine:
                     raise  # a nested step failed; its evidence stays with it
                 ctx.log("error", f"step {record.path} failed: {error}")
                 raise StepAbort(step, error) from e
+
+    async def _ask(self, step: StepModel) -> bool:
+        """`run --step`: wait for the operator before each step. Enter runs it, `s` skips
+        it, `c` runs the rest without asking, `q` stops the take."""
+        where = f" (line {step.loc.line})" if step.loc else ""
+        prompt = (f"\nnext: {step.path_str()} {step.summary()}{where}\n"
+                  "  [Enter] run  [s] skip  [c] continue without asking  [q] quit > ")
+        loop = asyncio.get_running_loop()
+        try:
+            answer = await loop.run_in_executor(None, _read_answer, prompt)
+        except EOFError:
+            answer = ""
+        answer = answer.strip().lower()
+        if answer == "q":
+            raise StopTake("interrupted", "stopped at a --step prompt")
+        if answer == "c":
+            self.ctx.opts.step_mode = False
+        return answer != "s"
 
     async def _execute(self, step: StepModel) -> None:
         ctx = self.ctx

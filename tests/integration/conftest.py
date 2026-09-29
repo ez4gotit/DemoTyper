@@ -38,7 +38,8 @@ def play(write_scenario, tmp_path):
         parsed, problems = load_scenario(path)
         assert parsed is not None, [p.format() for p in problems]
         out = tmp_path / "takes"
-        options = RunOptions(record=False, headless=True, out_dir=out, speed=4, **opts)
+        settings = {"record": False, "headless": True, "speed": 4, **opts}
+        options = RunOptions(out_dir=out, **settings)
         code = await run_take(parsed, options)
         return Result(code, out)
 

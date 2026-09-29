@@ -79,3 +79,38 @@ async def test_recorded_take(write_scenario, tmp_path):
     assert max(frame) >= 24, "the video is black: the screen capture saw nothing"
     lit = sum(1 for b in frame if b > 100) / len(frame)
     assert 0 < lit < 0.5, f"{lit:.1%} of pixels are bright; expected text on a dark terminal"
+
+
+async def test_record_pause_and_resume(write_scenario, tmp_path):
+    path = write_scenario("""
+        target:
+          recorder: {lead_in: 0.5, tail: 0.5}
+        defaults:
+          typing: {profile: robot}
+          after_command_pause: 0
+        steps:
+          - chapter: "Before"
+          - run: "echo one"
+          - record: pause
+          - run: "sleep 4"
+            timeout: 30
+          - record: resume
+          - chapter: "After"
+          - run: "echo two"
+    """)
+    parsed, problems = load_scenario(path)
+    assert parsed is not None, problems
+    out = tmp_path / "takes"
+    code = await run_take(parsed, RunOptions(record=True, out_dir=out))
+    take = next(out.iterdir())
+    assert code == ExitCode.OK, (take / "take.log").read_text()
+    report = json.loads((take / "report.json").read_text())
+    duration = _duration(take / "video.mp4")
+    wall = report["duration"]
+    assert not list(take.glob("*.mkv"))  # segments were joined and removed
+    # About 4 s of `sleep` is cut out of the video.
+    assert wall - duration > 3.0, (wall, duration)
+    before, after = report["chapters"]
+    assert after["time"] - before["time"] < 3.0  # the pause does not count
+    assert after["time"] < duration
+    assert "skipped)" in (take / "subtitles.srt").read_text()

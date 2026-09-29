@@ -162,6 +162,8 @@ class Checker:
             self.error(step, f"`{step.KEYWORD}` is only allowed inside a loop (for_each, "
                              "repeat, while, until)", step.KEYWORD)
 
+        if getattr(step, "typing", None) is not None:
+            self._check_layout(step.typing, _file_path(step) + ("typing",))
         names, paths = step_refs(step)
         self.secret_refs |= {p.split(".")[1] for p in paths
                              if p.startswith("secret.") and p.count(".") >= 1}
@@ -192,9 +194,23 @@ class Checker:
 
     # --- scenario ----------------------------------------------------------------------
 
+    def _check_layout(self, typing: Any, path: tuple[Any, ...]) -> None:
+        layout = getattr(typing, "layout", None) if typing is not None else None
+        if layout is None:
+            return
+        from ..keystrokes.layout import load_layout
+
+        try:
+            load_layout(layout)
+        except (ValueError, OSError) as e:
+            self.problems.append(Problem(str(e), self.locs.get(path + ("layout",))))
+
     def check_scenario(self) -> None:
         s = self.scenario
         top = self.locs
+        self._check_layout(s.defaults.typing, ("defaults", "typing"))
+        for i, c in enumerate(s.consoles):
+            self._check_layout(c.typing, ("consoles", i, "typing"))
         split = s.layout in ("split-horizontal", "split-vertical")
         for i, c in enumerate(s.consoles):
             if c.size is not None and not split:
@@ -215,10 +231,10 @@ class Checker:
                 "layout `single` shows one console at a time, switching to the one being "
                 "typed into; use `tabs` to show a tab bar or a split layout to see them "
                 "together", top.get(("layout",)) or top.get(("consoles",)), "warning"))
-        if s.target.kind != "local":
+        if s.target.kind == "vmware" and s.target.snapshot is None:
             self.problems.append(Problem(
-                "the vmware target is planned for phase 4; `run` will refuse this scenario",
-                top.get(("target", "kind")), "warning"))
+                "no `target.snapshot`: takes start from the VM's current state, so they may "
+                "not be repeatable", top.get(("target",)), "warning"))
 
 
 def _file_path(step: StepModel) -> tuple[Any, ...]:

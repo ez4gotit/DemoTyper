@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import time
 from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field, NonNegativeFloat, PositiveFloat
@@ -85,6 +86,48 @@ class CaptionStep(StepModel):
     async def execute(self, ctx: RunContext) -> None:
         if ctx.section == "steps":
             ctx.reporter.caption(self.caption, self.duration)
+
+
+@action
+class RecordStep(StepModel):
+    """Pause or resume the video (spec 10.1), e.g. around a long download. On resume a
+    caption says how much time was skipped; chapter times stay correct."""
+
+    KEYWORD = "record"
+    record: Literal["pause", "resume"]
+    caption: bool = True
+
+    async def execute(self, ctx: RunContext) -> None:
+        recorder = ctx.recorder
+        if ctx.section != "steps":
+            ctx.log("info", f"record: {self.record} ignored outside `steps` (not recorded)")
+            return
+        if not recorder.segments:
+            ctx.note(f"record: {self.record} (not recording in this take)")
+            return
+        if self.record == "pause":
+            if recorder.paused:
+                ctx.log("warning", "record: pause, but the recording is already paused")
+                return
+            await recorder.pause()
+            ctx.paused_at = time.time()
+            ctx.note("recording paused")
+            return
+        if not recorder.paused:
+            ctx.log("warning", "record: resume, but the recording is not paused")
+            return
+        await recorder.resume()
+        skipped = time.time() - (ctx.paused_at or time.time())
+        ctx.note(f"recording resumed; {skipped:.0f} s skipped")
+        if self.caption:
+            ctx.reporter.caption(f"({_duration(skipped)} skipped)", 3.0)
+
+
+def _duration(seconds: float) -> str:
+    seconds = round(seconds)
+    if seconds < 60:
+        return f"{seconds} s"
+    return f"{seconds // 60} min {seconds % 60:02d} s"
 
 
 @action

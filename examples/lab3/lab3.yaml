@@ -1,0 +1,57 @@
+# Lab 3 (examples/lab3/lab3.md), turned into a scenario step by step in docs/from-pdf.md.
+#   SUDO_PASS='...' scenarioplay run examples/lab3/lab3.yaml
+version: 1
+meta:
+  title: "Lab 3 - A web server with nginx"
+  source_pdf: "lab3.pdf"
+
+vars:
+  heading: "Lab 3 by student"
+
+defaults:
+  typing: { profile: normal }
+  after_command_pause: 1.2
+  answers:
+    - when: '\[sudo\] password for'
+      secret: SUDO_PASS
+
+setup:
+  - run: "sudo systemctl stop nginx 2>/dev/null; sudo apt-get purge -y -qq nginx nginx-common >/dev/null 2>&1; sudo -k"
+    timeout: 300
+
+steps:
+  - chapter: "Task 1: Install nginx"
+  - run: "sudo apt-get update"
+    timeout: 300
+    check_exit: true
+  - run: "sudo apt-get install -y nginx"
+    timeout: 600
+    check_exit: true
+  - run: "nginx -v"
+
+  - chapter: "Task 2: Start the service"
+  - run: "sudo systemctl enable --now nginx"
+    check_exit: true
+  - run: "systemctl is-active nginx"
+    expect: '^active$'
+
+  - chapter: "Task 3: Publish your own page"
+  - run: "echo '<h1>{{ heading }}</h1>' | sudo tee /var/www/html/index.html"
+  - run: "curl -s http://localhost"
+    expect: "{{ heading }}"
+
+  - chapter: "Task 4: Check the configuration and the log"
+  - run: "sudo nginx -t"
+    expect: "syntax is ok"
+  - run: "curl -sI http://localhost/missing"
+    expect: 'HTTP/1\.1 404'
+  - run: "sudo tail -n 2 /var/log/nginx/access.log"
+    label: hand-in
+  - screenshot: task4-hand-in.png
+  - pause: 2
+
+  - chapter: "Task 5: Clean up"
+  - run: "sudo systemctl stop nginx"
+  - run: "systemctl is-active nginx"
+    expect: '^inactive$'
+  - pause: 1.5

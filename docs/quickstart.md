@@ -1,8 +1,8 @@
 # Quick start
 
-This page takes you from a lab task to a recorded video. Variables, conditions, loops and
-the other blocks are on [language.md](language.md). The full syntax wiki arrives in
-phase 4.
+From a lab task to a finished video in about 15 minutes. For more, see the
+[reference](reference/index.md), the [cookbook](cookbook.md), and the worked example
+[from PDF to scenario](from-pdf.md).
 
 ## 1. Check the machine
 
@@ -94,7 +94,9 @@ To type a secret explicitly at one point, use the `secret` step:
 sudo remembers the password for about 15 minutes per terminal. To show the prompt in the
 video, put `sudo -k` at the end of `setup`.
 
-## Phase 1 actions
+## Basic actions
+
+(All actions and blocks: [reference](reference/index.md).)
 
 | Step | What it does |
 | --- | --- |

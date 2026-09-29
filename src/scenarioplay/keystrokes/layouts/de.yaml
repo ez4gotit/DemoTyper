@@ -1,0 +1,13 @@
+# German QWERTZ (keys reached with AltGr, such as @ { } [ ], have no neighbours).
+name: de
+rows:
+  - "^1234567890ß´"
+  - "qwertzuiopü+"
+  - "asdfghjklöä#"
+  - "<yxcvbnm,.-"
+shift:
+  - "°!\"§$%&/()=?`"
+  - "QWERTZUIOPÜ*"
+  - "ASDFGHJKLÖÄ'"
+  - ">YXCVBNM;:_"
+offsets: [0, 0.5, 0.75, 0.25]

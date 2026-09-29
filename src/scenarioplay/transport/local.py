@@ -3,9 +3,43 @@ from __future__ import annotations
 import asyncio
 import os
 import shutil
+import signal
 from pathlib import Path
 
-from .base import Result, Transport
+from .base import Process, Result, Transport
+
+
+class LocalProcess(Process):
+    def __init__(self, proc: asyncio.subprocess.Process):
+        self.proc = proc
+
+    @property
+    def returncode(self) -> int | None:  # type: ignore[override]
+        return self.proc.returncode
+
+    async def write(self, data: bytes) -> None:
+        assert self.proc.stdin
+        self.proc.stdin.write(data)
+        await self.proc.stdin.drain()
+
+    async def close_stdin(self) -> None:
+        if self.proc.stdin:
+            self.proc.stdin.close()
+
+    async def readline(self) -> bytes:
+        assert self.proc.stdout
+        return await self.proc.stdout.readline()
+
+    async def wait(self) -> int:
+        return await self.proc.wait()
+
+    def kill(self) -> None:
+        if self.proc.returncode is None:
+            self.proc.kill()
+
+    def interrupt(self) -> None:
+        if self.proc.returncode is None:
+            self.proc.send_signal(signal.SIGINT)
 
 
 def clean_env(extra: dict[str, str] | None = None) -> dict[str, str]:
@@ -21,17 +55,19 @@ def clean_env(extra: dict[str, str] | None = None) -> dict[str, str]:
 
 
 class LocalTransport(Transport):
+    is_local = True
+
     def __init__(self) -> None:
         self.env = clean_env()
 
     async def run(self, argv: list[str], *, input: str | None = None,
-                  timeout: float | None = 30.0) -> Result:
+                  timeout: float | None = 30.0, env: dict[str, str] | None = None) -> Result:
         proc = await asyncio.create_subprocess_exec(
             *argv,
             stdin=asyncio.subprocess.PIPE if input is not None else asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            env=self.env,
+            env={**self.env, **(env or {})},
         )
         try:
             out, err = await asyncio.wait_for(
@@ -63,3 +99,28 @@ class LocalTransport(Transport):
 
     def expand_user(self, path: str) -> str:
         return os.path.expanduser(path)
+
+    async def start(self, argv: list[str], *, stderr_path: str | None = None,
+                    env: dict[str, str] | None = None) -> Process:
+        stderr = open(stderr_path, "ab") if stderr_path else asyncio.subprocess.DEVNULL
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *argv, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
+                stderr=stderr, env={**self.env, **(env or {})})
+        finally:
+            if stderr_path:
+                stderr.close()  # type: ignore[union-attr]
+        return LocalProcess(proc)
+
+    async def fetch(self, remote: str, local: str) -> None:
+        if os.path.abspath(remote) != os.path.abspath(local):
+            shutil.copyfile(remote, local)
+
+    async def exists(self, path: str) -> bool:
+        return os.path.exists(path)
+
+    async def remove_file(self, path: str) -> None:
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass

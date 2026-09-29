@@ -1,0 +1,67 @@
+site_name: ScenarioPlay
+site_description: Scenario typing runner - authoring wiki
+docs_dir: docs
+theme:
+  name: material
+  features: [navigation.sections, content.code.copy, search.highlight]
+markdown_extensions:
+  - tables
+  - admonition
+  - toc: { permalink: true }
+  - pymdownx.highlight
+  - pymdownx.superfences
+exclude_docs: |
+  reference.yaml
+nav:
+  - Home: index.md
+  - Quick start: quickstart.md
+  - File structure: file-structure.md
+  - Variables, conditions, blocks, consoles: language.md
+  - Typing and typos: typing.md
+  - Choosing a wait: waiting.md
+  - Cookbook: cookbook.md
+  - From PDF to scenario: from-pdf.md
+  - Troubleshooting: troubleshooting.md
+  - Cheat sheet: cheatsheet.md
+  - Setup: setup.md
+  - Reference:
+      - reference/index.md
+      - Wait conditions: reference/conditions.md
+      - Actions:
+          - reference/run.md
+          - reference/type.md
+          - reference/enter.md
+          - reference/key.md
+          - reference/secret.md
+          - reference/wait_for.md
+          - reference/pause.md
+          - reference/clear.md
+          - reference/chapter.md
+          - reference/caption.md
+          - reference/set.md
+          - reference/capture.md
+          - reference/assert.md
+          - reference/exec.md
+          - reference/log.md
+          - reference/screenshot.md
+          - reference/record.md
+          - reference/use.md
+          - reference/focus.md
+          - reference/open_console.md
+          - reference/close_console.md
+          - reference/vm.md
+      - Blocks:
+          - reference/if.md
+          - reference/for_each.md
+          - reference/repeat.md
+          - reference/while.md
+          - reference/until.md
+          - reference/retry.md
+          - reference/try.md
+          - reference/define.md
+          - reference/call.md
+          - reference/break.md
+          - reference/continue.md
+          - reference/stop.md
+          - reference/parallel.md
+          - reference/include.md

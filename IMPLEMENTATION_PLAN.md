@@ -400,6 +400,34 @@ Decisions made while building phase 3:
 
 ---
 
+## 6.7 Phase 4 status
+
+**Tests:** 180 in total. All pass in WSL, 179 under Xvfb; the VMware end-to-end test needs a real X socket, so it runs outside Xvfb. Lint is clean, and the schema and generated docs are checked to be current.
+
+| WP | State | Verified how |
+| --- | --- | --- |
+| 4.1 VMware target | Done, except running against a real Linux guest. Includes: `vmrun` wrapper (found on Windows and Linux); asyncssh transport; revert, start, IP, SSH and desktop waits within `boot_timeout`; the terminal and x11grab recorder in the guest (mode A); `vm: snapshot/revert/reboot` with console rebuild and transcripts kept across the reboot; the §4.4 validator rules; `--target`. | In-process SSH server plus a stand-in `vmrun`: a full take with `vm: reboot` over real SSH. On this Windows host, `doctor --target vmware` ran the real `vmrun` (list, listSnapshots) read-only. No Linux guest exists here, so no take has run in a real VM. |
+| 4.2 Host recording and Wayland | Mode B (`gdigrab` of the Workstation window on Windows, `x11grab` on Linux) and wf-recorder (wlroots) are done. The GNOME/KDE ScreenCast portal is **not done**; the docs recommend an Xorg session. | Mode B: the command line is tested, and `doctor` confirmed ffmpeg's `gdigrab` on this host. wf-recorder: a stand-in that behaves like it (SIGINT finishes the file, segments). Neither has recorded real video here. |
+| 4.3 Typing realism | Done: all five typo kinds; us/de/ru and custom YAML layouts with the Shift layer; notice delay, hesitation, backspace speed, budget, `protect`, `seed`; the typo gate (shell prompt plus Enter in the same step); every typo logged; `--typos`/`--no-typos`. | Hypothesis: every plan replays to the exact text. Soak in real bash and zsh: 80 commands at a 12 % typo rate, zero executed mismatches, all outputs correct. |
+| 4.4 CLI and outputs | Done: `doctor` (local and vmware host), `--dry-run` (block tree), `--step`, `--from/--to`, `--keep-session`, `--burn-subtitles`, `--cast`, `record: pause/resume` (segments joined, skipped time captioned, chapter times corrected), `soak`. | Integration tests; pause/resume and burned subtitles on real recordings under Xvfb. |
+| 4.5 Wiki, examples, setup guides | Done: all 8 wiki sections (MkDocs); reference pages generated from the code with 2+ examples and common mistakes per keyword (each example is validated); 6 examples (single-console, multi-console, loops/conditions, VMware with snapshot reset, lab3 from the PDF walkthrough, hello); setup guide for the guest and the host. | `test_docs.py`: pages are current, every keyword has examples, every example validates. |
+| 4.6 Reliability | `scenarioplay soak FILE --takes 10` runs N takes and fails unless all succeed and follow the same step sequence (branches and loop passes compared; typos and timing ignored). Soak test: 3 takes of the loops example, identical. | The "10 takes from a snapshot" and "50 takes × 50 commands" runs need the lab VM, or `SP_SOAK_TAKES=50 SP_SOAK_COMMANDS=50` locally (about 45 min). |
+
+**Still to do for phase 4 acceptance (§15):**
+- Run `examples/vmware-lab.yaml` or `lab3.yaml` 10 times with `soak` against a real Ubuntu guest with a `clean` snapshot.
+- Have a new author write a scenario from a PDF using only the wiki.
+- Optionally, the ScreenCast portal backend for GNOME and KDE on Wayland.
+
+Decisions made while building phase 4:
+
+1. **Typos only where they are checked:** on a shell prompt and in a step that presses Enter (the verifier runs before that Enter). `type` without Enter at the prompt never gets typos.
+2. **`repeat` is both a block and an option of `key`**, so it uses the same "also an option" priority as `enter`, `caption` and `capture`.
+3. **The recorder runs through the transport:** ffmpeg in the guest over SSH (mode A), with segments and screenshots fetched over SFTP. The black-screen check uses ffmpeg's `signalstats` so it works remotely.
+4. **Transcripts across `vm: revert/reboot`:** each console's text is captured before the guest restarts and joined with a `--- vm reboot ---` line.
+5. **`scenarioplay soak`** defines "same sequence of steps" as step paths, statuses, branches and loop passes. Typo lines and timings vary between takes and are ignored.
+
+---
+
 ## 7. Proposed answers to the spec's open questions
 
 | Question | Recommendation |

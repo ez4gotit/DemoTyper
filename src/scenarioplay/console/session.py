@@ -105,6 +105,9 @@ class Session:
 
     async def create(self, scenario: Scenario, width: int, height: int) -> None:
         await self.tmux.detect_version()
+        # A server left on this socket (a guest rebuilt after `vm: reboot` without really
+        # rebooting, or an earlier crash) would clash with the new session.
+        await self.tmux.kill_server()
         await self.transport.make_dir(self.runtime_dir)
         self.layout = scenario.layout
         self.default_prompt = scenario.defaults.prompt

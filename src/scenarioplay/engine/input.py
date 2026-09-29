@@ -7,7 +7,7 @@ import random
 from typing import TYPE_CHECKING
 
 from ..errors import StepFailed
-from ..keystrokes import Keystroke, plan_typing, resolve_typing, think_time
+from ..keystrokes import Keystroke, plan_line, plan_typing, resolve_typing, think_time
 from ..keystrokes.profiles import TypingParams
 from ..loader.model import TypingSpec
 from .context import FAST
@@ -68,7 +68,8 @@ async def _mark_input(console: Console) -> None:
 
 def typos_gate(ctx: RunContext, params: TypingParams, typos_off: bool, at_shell: bool,
                why_not: str) -> bool:
-    """Spec 6.2: typos only on a shell command line whose text can be read back."""
+    """Spec 6.2: typos only on a shell command line whose text is read back and checked
+    before Enter. Everywhere else they are off, whatever the scenario says."""
     if not params.typos.enabled or params.typos.rate <= 0 or typos_off:
         return False
     if not at_shell:
@@ -76,8 +77,7 @@ def typos_gate(ctx: RunContext, params: TypingParams, typos_off: bool, at_shell:
         if ctx.record is not None:
             ctx.record.notes.append(f"typos auto-off: {why_not}")
         return False
-    ctx.typo_notice()  # phase 4 turns this into real typos
-    return False
+    return True
 
 
 async def type_step_text(ctx: RunContext, console: Console, step: TypingStep, text: str, *,
@@ -113,9 +113,15 @@ async def type_text(ctx: RunContext, console: Console, text: str, *,
         if secret:
             at_shell, why_not = False, "secret value"
         console.input_start = (info.cursor_abs, info.cursor_x) if at_shell else None
-        typos_gate(ctx, params, typos_off or secret, at_shell, why_not)
+        can_verify = at_shell and press
+        if at_shell and not press:
+            why_not = "no Enter in this step, so the line is not checked before running"
+        typos = typos_gate(ctx, params, typos_off or secret, can_verify, why_not)
         await _mark_input(console)
-        await send_keystrokes(console, plan_typing(line, params, rng, ctx.speed))
+        plan = plan_line(line, params, rng, ctx.speed, typos=typos)
+        for typo in plan.typos:
+            ctx.log("info", "  " + typo.describe())
+        await send_keystrokes(console, plan.events)
         verified = False
         if press:
             if console.input_start is not None:

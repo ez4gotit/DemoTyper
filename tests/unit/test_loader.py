@@ -10,7 +10,10 @@ def errors(problems):
 
 
 def test_examples_are_valid():
-    for path in sorted((ROOT / "examples").glob("*.yaml")):
+    paths = [*sorted((ROOT / "examples").glob("*.yaml")),
+             *sorted((ROOT / "examples").glob("lab*/*.yaml"))]
+    assert len(paths) >= 6
+    for path in paths:
         parsed, problems = load_scenario(path)
         assert parsed is not None, [p.format() for p in problems]
         assert not errors(problems)
@@ -108,10 +111,14 @@ def test_option_keywords_do_not_count_as_second_action(load):
             wait_for: {prompt: true}
           - wait_for: {text: done}
           - caption: "standalone"
+          - key: Up
+            repeat: 2
+          - repeat: 2
+            steps: [{run: ls}]
     """)
     assert parsed is not None, [p.format() for p in problems]
     kinds = [s.KEYWORD for s in parsed.sections["steps"]]
-    assert kinds == ["type", "chapter", "enter", "wait_for", "caption"]
+    assert kinds == ["type", "chapter", "enter", "wait_for", "caption", "key", "repeat"]
 
 
 def test_two_actions_in_one_step(load):
@@ -124,15 +131,30 @@ def test_two_actions_in_one_step(load):
     assert "only one action" in problems[0].message
 
 
-def test_future_keywords_explain_phase(load):
+def test_vm_steps_follow_section_4_4(load):
     parsed, problems = load("""
+        target: {kind: vmware, vmx: /vms/lab.vmx, snapshot: clean, record: guest}
+        setup:
+          - vm: revert
         steps:
-          - vm: {revert: clean}
-          - record: pause
+          - vm: reboot
+          - vm: snapshot
     """)
     assert parsed is None
-    messages = " ".join(p.message for p in problems)
-    assert "`vm`" in messages and "`record`" in messages and "phase 4" in messages
+    errors = [p for p in problems if p.severity == "error"]
+    assert [p.loc.line for p in errors] == [5, 6, 6]
+    assert "record on the host" in errors[0].message
+    assert "needs `name`" in errors[2].message
+    parsed, problems = load("""
+        target: {kind: vmware, vmx: /vms/lab.vmx, snapshot: clean, record: host}
+        steps:
+          - vm: revert
+          - vm: snapshot
+            name: after-install
+    """)
+    assert parsed is not None, [p.format() for p in problems]
+    parsed, problems = load("steps: [{vm: reboot}]\n")
+    assert parsed is None and "target.kind: vmware" in problems[0].message
 
 
 def test_expect_string_is_regex(load):

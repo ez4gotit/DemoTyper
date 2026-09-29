@@ -1,0 +1,49 @@
+# VMware example: every take starts from the `clean` snapshot of an Ubuntu guest. The
+# runner runs on the host (Windows or Linux) and reaches the guest over SSH.
+#
+#   scenarioplay doctor --target vmware --vmx "D:/VMs/ubuntu/ubuntu.vmx" --key ~/.ssh/lab
+#   SUDO_PASS='...' scenarioplay run examples/vmware-lab.yaml
+#
+# record: host captures the Workstation window, so the take can revert the guest in the
+# middle (spec 4.4); with record: guest, move the `vm` step to `setup`.
+version: 1
+meta:
+  title: "VMware lab - users and a snapshot"
+
+target:
+  kind: vmware
+  vmx: "D:/VMs/ubuntu/ubuntu.vmx"
+  snapshot: clean
+  ssh: { host: auto, user: student, key: ~/.ssh/lab }
+  record: host
+  boot_timeout: 240
+  terminal: { font_size: 18 }
+
+vars:
+  users: [alice, bob]
+
+defaults:
+  typing: { profile: normal }
+  answers:
+    - when: '\[sudo\] password for'
+      secret: SUDO_PASS
+
+setup:
+  - run: "sudo -k"
+
+steps:
+  - chapter: "Task 1: Create the users"
+  - for_each: "{{ users }}"
+    as: u
+    steps:
+      - run: "sudo useradd -m {{ u }}"
+        check_exit: true
+  - run: "getent passwd {{ users | join(' ') }} | cut -d: -f1"
+    expect: '^bob$'
+
+  - chapter: "Task 2: Break something, then go back"
+  - run: "sudo userdel -r alice"
+  - caption: "Reverting the VM to the clean snapshot"
+  - vm: revert
+  - run: "getent passwd alice || echo 'alice is gone (clean snapshot)'"
+    expect: "alice is gone"

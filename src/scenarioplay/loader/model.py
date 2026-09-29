@@ -99,6 +99,9 @@ class SshSpec(Strict):
     options: list[str] = Field(
         default_factory=list, description="Extra ssh options, e.g. ['-o', 'ProxyJump=bastion'].")
     program: str = Field("ssh", description="The ssh client to run.")
+    known_hosts: str | None = Field(
+        "~/.ssh/known_hosts", description="Host keys to check the guest against (vmware "
+                                          "target); `none` accepts any key.")
 
 
 class TerminalSpec(Strict):
@@ -115,8 +118,11 @@ class TerminalSpec(Strict):
 
 
 class RecorderSpec(Strict):
-    backend: Literal["auto", "x11grab"] = "auto"
-    display: str | None = Field(None, description="X display to record; default $DISPLAY.")
+    backend: Literal["auto", "x11grab", "wf-recorder"] = Field(
+        "auto", description="auto: x11grab, or wf-recorder on a Wayland session that has it.")
+    display: str | None = Field(
+        None, description="X display to record (default $DISPLAY), or for wf-recorder an "
+                          "output name such as eDP-1.")
     fps: PositiveInt = 30
     crf: Annotated[int, Field(ge=0, le=51)] = 23
     codec: str = "libx264"

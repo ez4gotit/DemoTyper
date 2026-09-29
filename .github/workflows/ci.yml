@@ -24,10 +24,11 @@ jobs:
         run: pip install -e '.[dev]'
       - name: Lint
         run: ruff check src tests
-      - name: Schema is up to date
+      - name: Schema and generated docs are up to date
         run: |
           scenarioplay schema > /tmp/schema.json
           diff -u schema/scenarioplay.schema.json /tmp/schema.json
+          scenarioplay gen-docs > /dev/null && git diff --exit-code docs/reference
       - name: Tests (unit, tmux integration, recording under Xvfb)
         env:
           LANG: C.UTF-8

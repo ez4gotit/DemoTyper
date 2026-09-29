@@ -1,0 +1,525 @@
+# Hand-written part of the reference pages: examples and common mistakes per keyword.
+# Options, types and defaults come from the code; `scenarioplay gen-docs` merges both into
+# docs/reference/. Keep at least two examples per entry (spec 14.3).
+
+# What each keyword's own value means.
+main:
+  run: "The command to type; Enter is pressed and the prompt awaited."
+  type: "The text to type."
+  enter: "true, or how many times to press Enter."
+  key: "Key name: C-c, M-x, Tab, Up, Escape, F5, PageDown, ..."
+  secret: "Name of the secret (from --secrets or the environment)."
+  wait_for: "The condition to wait for."
+  pause: "Seconds (scaled by --speed)."
+  clear: "command (type `clear`) or key (Ctrl+L)."
+  chapter: "Chapter title (also a subtitle and a line in chapters.txt)."
+  caption: "Subtitle text."
+  set: "Variable name."
+  capture: "Variable name."
+  assert: "Expression or condition that must hold."
+  exec: "Shell command, run out of view."
+  log: "Text for the take log."
+  screenshot: "File name, or true for a name based on the step."
+  record: "pause or resume."
+  use: "Console name."
+  focus: "Console name."
+  open_console: "Name of a declared console."
+  close_console: "Name of an open console."
+  vm: "snapshot, revert or reboot."
+  include: "Path of the file to include, relative to this file."
+  if: "Expression or condition, checked once."
+  for_each: "A list, or \"{{ variable }}\" holding one."
+  repeat: "Number of passes."
+  while: "Expression or condition, checked before each pass."
+  until: "Expression or condition, checked after each pass."
+  retry: "Number of attempts in total."
+  try: "Steps that might fail."
+  define: "Name of the block."
+  call: "Name of a defined block."
+  break: "true."
+  continue: "true."
+  stop: "success or failure."
+  parallel: "Branches: a list of {console, steps}."
+
+actions:
+  run:
+    examples:
+      - |
+        - run: "sudo apt-get update"
+          timeout: 300
+          check_exit: true
+      - |
+        - run: "sudo apt install nginx"
+          expect: '\[Y/n\]'          # wait for the question instead of the prompt
+        - type: "y"
+          enter: true
+          wait_for: { prompt: true, timeout: 600 }
+      - |
+        - run: "nginx -v 2>&1"
+          capture: { name: version, regex: 'nginx/(\S+)' }
+    mistakes:
+      - "A command that never returns (`tail -f`, a server) makes `run` wait for the prompt until it times out. Use `type` with `enter: true` and a `wait_for` such as `{text: \"Serving\"}` or `{idle: 1}`."
+      - "`expect` looks only at output produced after Enter. It never matches the typed command itself."
+      - "`check_exit` needs the prompt to come back, so it can't be combined with `expect`."
+  type:
+    examples:
+      - |
+        - type: "tail -f /var/log/syslog"
+          enter: true
+          wait_for: { idle: 2 }
+      - |
+        - type: "ls /etc/ng"         # no Enter: show tab completion next
+        - key: Tab
+      - |
+        - type: "cat > notes.txt\nfirst line\nsecond line"
+          enter_newlines: true
+        - key: C-d
+    mistakes:
+      - "Text with newlines is refused unless `enter_newlines: true`, so nothing is run by accident."
+      - "A Tab inside the text would trigger completion; send it with `key: Tab`."
+  enter:
+    examples:
+      - |
+        - enter: true
+      - |
+        - enter: 2                   # press Enter twice
+          wait_for: { text: "Done" }
+    mistakes:
+      - "On a `type` step, `enter: true` is an option of that step, not a separate step."
+  key:
+    examples:
+      - |
+        - key: C-c
+          wait_for: { prompt: true }
+      - |
+        - key: Up                    # previous command from history
+          repeat: 2
+        - key: Enter
+    mistakes:
+      - "Names follow tmux: `C-c` (Ctrl+C), `M-x` (Alt+X), `PageDown`, `F5`. `Ctrl+C` is not a valid name."
+  secret:
+    examples:
+      - |
+        - type: "mysql -u root -p"
+          enter: true
+        - secret: DB_ROOT_PASSWORD
+          enter: true
+          wait_for: { text: "mysql>" }
+      - |
+        - type: "ssh-add ~/.ssh/lab"
+          enter: true
+        - secret: KEY_PASSPHRASE
+          enter: true
+    mistakes:
+      - "`secret` takes the secret's name, never the value. Give the value with `--secrets FILE` or an environment variable."
+      - "The step waits until the terminal reads hidden input. If the program echoes, nothing is typed and the step fails. Only drop that check with `hidden: false` if you're sure."
+      - "For sudo, an answer rule in `defaults.answers` is usually simpler than a `secret` step."
+  wait_for:
+    examples:
+      - |
+        - wait_for: { text: "Serving HTTP", console: server, timeout: 20 }
+      - |
+        - wait_for:
+            any:
+              - { text: "password for", as: need_password }
+              - { prompt: true, as: done }
+      - |
+        - wait_for: { port: 8080, timeout: 30 }
+    mistakes:
+      - "`text` and `regex` see only output since the last input. Use `scope: screen` to look at everything visible."
+      - "`idle` never holds while something keeps changing on screen, such as a clock or `top`."
+  pause:
+    examples:
+      - |
+        - pause: 2                   # let the viewer read the output
+      - |
+        - pause: 0.5
+    mistakes:
+      - "Don't use `pause` to wait for a command. Use `wait_for`, which ends as soon as the condition holds."
+  clear:
+    examples:
+      - |
+        - clear: command             # types `clear`
+      - |
+        - clear: key                 # Ctrl+L, nothing typed
+    mistakes:
+      - "`clear` inside a full-screen program (vim, less) does not do what you expect; quit it first."
+  chapter:
+    examples:
+      - |
+        - chapter: "Task 1: Install nginx"
+      - |
+        - chapter: "Task 2: Configure the site"
+          caption: "The config lives in /etc/nginx/sites-available"
+    mistakes:
+      - "Secrets are refused in chapter titles and captions."
+      - "Chapters in `setup` or `finally` are only logged; those sections are not recorded."
+  caption:
+    examples:
+      - |
+        - caption: "nginx is listening on port 80"
+      - |
+        - caption: "This takes about a minute"
+          duration: 6
+    mistakes:
+      - "Captions go into subtitles.srt; they only appear in the video with `--burn-subtitles`."
+  set:
+    examples:
+      - |
+        - set: site
+          value: "{{ env_name }}.example.local"
+      - |
+        - set: packages
+          value: "{{ base_packages }}"   # stays a list
+    mistakes:
+      - "The value is a template; a bare `x == 1` is text, not an expression."
+  capture:
+    examples:
+      - |
+        - run: "df -h /"
+        - capture: used
+          regex: '(\d+)%'
+      - |
+        - capture: last_line
+          lines: 1
+          from: last_output
+    mistakes:
+      - "Captured values are text. Compare them as numbers with `| int`, as in `used | int > 80`."
+      - "Without a regex group, the whole match is kept."
+  assert:
+    examples:
+      - |
+        - assert: "version matches '^1\\.2'"
+          message: "nginx 1.2x is installed"
+      - |
+        - assert: { port: 80 }
+          message: "the web server listens"
+    mistakes:
+      - "Write a bare expression (`x == 1`), not `{{ x }} == 1`."
+  exec:
+    examples:
+      - |
+        - exec: "systemctl is-active nginx"
+          capture: state
+        - assert: "state == 'active'"
+      - |
+        - exec: "rm -rf /tmp/lab && mkdir /tmp/lab"
+          check_exit: true
+    mistakes:
+      - "Nothing appears on screen: `exec` is for checks and preparation, not for what the viewer should see."
+      - "On a console with `host:`, `exec` runs on that machine."
+  log:
+    examples:
+      - |
+        - log: "starting the slow part"
+      - |
+        - log: "version is {{ version }}"
+          level: warning
+    mistakes:
+      - "Secrets are refused in log lines."
+  screenshot:
+    examples:
+      - |
+        - screenshot: after-install.png
+      - |
+        - screenshot: true           # named after the step
+    mistakes:
+      - "Without a display (`--headless`), the console text is saved instead of a PNG."
+  record:
+    examples:
+      - |
+        - record: pause
+        - run: "sudo apt-get dist-upgrade -y"
+          timeout: 1800
+        - record: resume             # adds a "(12 min 05 s skipped)" subtitle
+      - |
+        - record: pause
+        - run: "make -j8"
+        - record: resume
+          caption: false
+    mistakes:
+      - "Pausing twice, or resuming without pausing first, only logs a warning."
+  use:
+    examples:
+      - |
+        - use: client
+        - run: "curl -s localhost"
+      - |
+        - use: server
+    mistakes:
+      - "`use` does not change the screen by itself; the console comes forward when it is typed into (or with `focus`)."
+  focus:
+    examples:
+      - |
+        - focus: logs
+          zoom: true
+        - pause: 3
+        - focus: logs
+          zoom: false
+      - |
+        - focus: server              # highlight without typing
+    mistakes:
+      - "Zoom only has an effect in split layouts."
+  open_console:
+    examples:
+      - |
+        # consoles: [..., {name: extra, start: false}]
+        - open_console: extra
+      - |
+        - close_console: extra
+        - open_console: extra        # a fresh shell
+    mistakes:
+      - "Only consoles declared under `consoles` can be opened; give them `start: false` to open them later."
+  close_console:
+    examples:
+      - |
+        - close_console: extra
+      - |
+        - close_console: logs
+          when: "not keep_logs"
+    mistakes:
+      - "The last open console cannot be closed."
+  vm:
+    examples:
+      - |
+        setup:
+          - vm: revert
+            name: clean
+      - |
+        # target.record: host
+        - vm: reboot
+        - run: "uptime"
+      - |
+        - vm: snapshot
+          name: after-install
+    mistakes:
+      - "With `target.record: guest`, `vm` steps are only allowed in `setup`, because they would kill the recorder inside the guest (spec 4.4)."
+  include:
+    examples:
+      - |
+        - include: common/login.yaml
+      - |
+        - include: ../shared/install-docker.yaml
+    mistakes:
+      - "The path is relative to the file that contains the `include`."
+      - "An included file holds a list of steps, or a mapping with only `steps:`."
+  if:
+    examples:
+      - |
+        - if: "env_name == 'prod'"
+          then:
+            - run: "echo production"
+          else:
+            - run: "echo test"
+      - |
+        - if: { exec: "systemctl is-active nginx" }
+          then:
+            - caption: "nginx is already running"
+          else:
+            - run: "sudo systemctl start nginx"
+    mistakes:
+      - "`if` always needs `then`. To make one step conditional, use `when` on that step."
+      - "`elif` is a list of `{if, then}` entries."
+  for_each:
+    examples:
+      - |
+        - for_each: "{{ packages }}"
+          as: pkg
+          steps:
+            - run: "apt-cache policy {{ pkg }}"
+      - |
+        - for_each: [web, api]
+          steps:
+            - run: "systemctl status {{ item }} --no-pager"
+    mistakes:
+      - "`for_each: \"{{ packages }}\"` must be exactly one `{{ }}` so it stays a list."
+  repeat:
+    examples:
+      - |
+        - repeat: 3
+          steps:
+            - run: "curl -s localhost > /dev/null && echo ok {{ loop.index }}"
+      - |
+        - repeat: "{{ attempts }}"
+          steps: [{ run: "make test" }]
+    mistakes:
+      - "`loop.index` starts at 1; `loop.index0` starts at 0."
+  while:
+    examples:
+      - |
+        - while: "count | int < 3"
+          max_iterations: 10
+          steps:
+            - run: "ls | wc -l"
+              capture: count
+      - |
+        - while: { exec: "pgrep -x apt" }
+          max_iterations: 60
+          delay: 5
+          steps: [{ log: "apt is still running" }]
+    mistakes:
+      - "`max_iterations` is required, so a take can never hang."
+      - "`while` checks before each pass; use `until` to run the steps at least once."
+  until:
+    examples:
+      - |
+        - until: { regex: "HTTP/1.1 200" }
+          max_iterations: 10
+          delay: 3
+          steps:
+            - run: "curl -sI http://localhost"
+      - |
+        - until: "status == 'ready'"
+          max_iterations: 20
+          steps:
+            - exec: "cat /tmp/status"
+              capture: status
+    mistakes:
+      - "The condition is checked after each pass and looks at the output of the steps just run."
+  retry:
+    examples:
+      - |
+        - retry: 3
+          delay: 5
+          steps:
+            - run: "wget https://example.com/file.tar.gz"
+              check_exit: true
+      - |
+        - retry: 2
+          on_exhausted: continue
+          steps: [{ run: "ping -c1 -W1 10.0.0.1", check_exit: true }]
+    mistakes:
+      - "`retry: 3` means three attempts in total."
+      - "For one step, `on_fail: {retry: 2}` is shorter."
+  try:
+    examples:
+      - |
+        - try:
+            - run: "sudo systemctl start app"
+              check_exit: true
+          catch:
+            - log: "app did not start: {{ error.message }}"
+          finally:
+            - run: "sudo journalctl -u app -n 5 --no-pager"
+      - |
+        - try:
+            - assert: { file: /etc/app.conf }
+          catch:
+            - run: "sudo cp app.conf /etc/"
+    mistakes:
+      - "Without `catch` the failure still fails the take; `finally` runs either way."
+  define:
+    examples:
+      - |
+        - define: create_user
+          params: [name]
+          steps:
+            - run: "sudo useradd -m {{ name }}"
+      - |
+        - define: show_service
+          params: [unit]
+          steps:
+            - run: "systemctl status {{ unit }} --no-pager | head -n 3"
+    mistakes:
+      - "Defining runs nothing; use `call`. Names must be unique across the scenario and its includes."
+  call:
+    examples:
+      - |
+        - call: create_user
+          with: { name: alice }
+      - |
+        - for_each: [alice, bob]
+          as: who
+          steps:
+            - call: create_user
+              with: { name: "{{ who }}" }
+    mistakes:
+      - "Every parameter in `params` needs a value in `with`."
+  break:
+    examples:
+      - |
+        - for_each: "{{ hosts }}"
+          as: h
+          steps:
+            - exec: "ping -c1 -W1 {{ h }}"
+            - break: true
+              when: "last.exit_code == 0"
+      - |
+        - repeat: 10
+          steps:
+            - break: true
+              when: "loop.index > 3"
+    mistakes:
+      - "`break` and `continue` only work inside a loop."
+  continue:
+    examples:
+      - |
+        - for_each: [a, b, c]
+          steps:
+            - continue: true
+              when: "item == 'b'"
+            - run: "echo {{ item }}"
+      - |
+        - repeat: 5
+          steps:
+            - continue: true
+              when: "loop.index0 in [1, 3]"
+            - run: "echo pass {{ loop.index }}"
+    mistakes:
+      - "`continue` skips only the rest of the current pass; the loop goes on."
+  stop:
+    examples:
+      - |
+        - stop: success
+          message: "nothing more to show"
+      - |
+        - stop: failure
+          message: "the lab VM has no network"
+          when: "not online"
+    mistakes:
+      - "`finally` still runs after `stop`."
+  parallel:
+    examples:
+      - |
+        - parallel:
+            - console: server
+              steps:
+                - type: "python3 -m http.server 8080"
+                  enter: true
+                  wait_for: { text: "Serving HTTP" }
+            - console: logs
+              steps:
+                - type: "tail -f access.log"
+                  enter: true
+                  wait_for: { idle: 1 }
+      - |
+        - parallel:
+            - console: a
+              steps: [{ run: "sleep 30" }]
+            - console: b
+              steps: [{ run: "echo done" }]
+          wait: any                  # stop the slow branch
+    mistakes:
+      - "Each branch needs its own console, and steps inside a branch can't name another console."
+
+conditions:
+  prompt:
+    examples: ["- wait_for: { prompt: true }", "- key: C-c\n  wait_for: { prompt: true }"]
+  text:
+    examples: ['- wait_for: { text: "Active: active (running)" }', '- run: "make"\n  expect: { text: "Build finished" }']
+  regex:
+    examples: ["- wait_for: { regex: 'HTTP/1\\.1 (200|301)' }", "- run: \"ip -4 addr\"\n  expect: 'inet 10\\.'"]
+  gone:
+    examples: ['- wait_for: { gone: "Downloading", timeout: 600 }', '- wait_for: { gone: "%", timeout: 120 }']
+  idle:
+    examples: ["- wait_for: { idle: 2 }", "- type: \"tail -f app.log\"\n  enter: true\n  wait_for: { idle: 1 }"]
+  exec:
+    examples: ['- wait_for: { exec: "systemctl is-active nginx", timeout: 30 }', '- if: { exec: "id alice" }\n  then: [{ log: "alice exists" }]']
+  file:
+    examples: ["- wait_for: { file: /var/run/app.pid }", "- assert: { file: ~/.ssh/id_ed25519 }"]
+  port:
+    examples: ["- wait_for: { port: 80, timeout: 30 }", '- wait_for: { port: "db:5432" }']
+  any:
+    examples: ["- wait_for:\n    any:\n      - { text: \"[Y/n]\", as: question }\n      - { prompt: true, as: done }"]
+  all:
+    examples: ["- wait_for:\n    all:\n      - { port: 80 }\n      - { port: 443 }"]

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import PrivateAttr
 
-from ..errors import StepAbort
+from ..errors import StepAbort, StepFailed
 from ..plugins import action
 from .base import BlockStep, StepModel
 
@@ -95,6 +95,51 @@ class CloseConsoleStep(StepModel):
         if ctx.current == self.close_console:
             ctx.current = next(iter(ctx.session.consoles))
         ctx.note(f"closed console {self.close_console!r}")
+
+
+@action
+class VmStep(StepModel):
+    """VMware control mid-take (spec 4.4): `vm: snapshot`, `vm: revert` or `vm: reboot`.
+
+    `snapshot` takes a snapshot named `name`; `revert` goes back to `name` (default:
+    target.snapshot). After a revert or reboot the runner waits for the guest and rebuilds
+    the consoles. In `steps`, revert and reboot need host-side recording
+    (`target.record: host`), because they would kill a recorder inside the guest."""
+
+    KEYWORD = "vm"
+    vm: Literal["snapshot", "revert", "reboot"]
+    name: str | None = None
+
+    def summary(self) -> str:
+        return f"vm: {self.vm}" + (f" {self.name}" if self.name else "")
+
+    def check(self, checker: Checker) -> None:
+        target = checker.scenario.target
+        if target.kind != "vmware":
+            checker.error(self, "`vm` steps need `target.kind: vmware`", "vm")
+            return
+        section = str(self.path[0]) if self.path else "steps"
+        if section == "steps" and target.record == "guest":
+            checker.error(self, f"`vm: {self.vm}` during the recorded steps would kill the "
+                                "recorder running inside the guest (and a snapshot would "
+                                "capture it half-written); record on the host with "
+                                "`target.record: host`, or move this step to `setup`", "vm")
+        if self.vm == "snapshot" and not self.name:
+            checker.error(self, "`vm: snapshot` needs `name`", "vm")
+        if self.vm == "revert" and not (self.name or target.snapshot):
+            checker.error(self, "`vm: revert` needs `name` or `target.snapshot`", "vm")
+
+    async def execute(self, ctx: RunContext) -> None:
+        if ctx.vm is None:
+            raise StepFailed("`vm` steps need the vmware target")
+        if self.vm == "snapshot":
+            assert self.name
+            await ctx.vm.vmrun.snapshot(self.name)
+            ctx.note(f"snapshot {self.name!r} taken")
+            return
+        ctx.note(f"{self.vm}: waiting for the guest (boot_timeout "
+                 f"{ctx.scenario.target.boot_timeout:g}s)")
+        await ctx.restart_guest(self.vm, self.name)
 
 
 @action

@@ -6,6 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from ..fielddocs import FIELD_DOCS
 from ..plugins import ACTIONS, CONDITIONS, load_plugins
 from .model import OnFailRetry, Scenario
 
@@ -16,6 +17,9 @@ REF = "#/$defs/{model}"
 def _add(defs: dict[str, Any], model: type[BaseModel]) -> dict[str, Any]:
     schema = model.model_json_schema(ref_template=REF)
     defs.update(schema.pop("$defs", {}))
+    for key, prop in schema.get("properties", {}).items():
+        if "description" not in prop and key in FIELD_DOCS:
+            prop["description"] = FIELD_DOCS[key]  # editor tooltips
     return schema
 
 

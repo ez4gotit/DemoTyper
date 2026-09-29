@@ -13,10 +13,58 @@ class Result:
     err: str
 
 
+class Process(ABC):
+    """A long-running process on the target (the screen recorder)."""
+
+    returncode: int | None
+
+    @abstractmethod
+    async def write(self, data: bytes) -> None: ...
+
+    @abstractmethod
+    async def close_stdin(self) -> None: ...
+
+    @abstractmethod
+    async def readline(self) -> bytes:
+        """A line of stdout; b"" at end of file."""
+
+    @abstractmethod
+    async def wait(self) -> int: ...
+
+    @abstractmethod
+    def kill(self) -> None: ...
+
+    @abstractmethod
+    def interrupt(self) -> None:
+        """Send SIGINT (how wf-recorder is told to finish its file)."""
+
+
 class Transport(ABC):
+    #: True when the target is this machine (files need no copying).
+    is_local: bool = True
+
+    @abstractmethod
+    async def start(self, argv: list[str], *, stderr_path: str | None = None,
+                    env: dict[str, str] | None = None) -> Process:
+        """Start a process with piped stdin/stdout; stderr goes to a file on the target."""
+
+    @abstractmethod
+    async def fetch(self, remote: str, local: str) -> None:
+        """Copy a file from the target to this machine."""
+
+    @abstractmethod
+    async def exists(self, path: str) -> bool: ...
+
+    @abstractmethod
+    async def remove_file(self, path: str) -> None:
+        """Delete a file on the target, ignoring a missing one."""
+
+    async def close(self) -> None:  # noqa: B027  (optional hook; local transports have none)
+        """Release connections."""
+
     @abstractmethod
     async def run(self, argv: list[str], *, input: str | None = None,
-                  timeout: float | None = 30.0) -> Result:
+                  timeout: float | None = 30.0, env: dict[str, str] | None = None) -> Result:
         """Run a command to completion on the target."""
 
     @abstractmethod

@@ -42,6 +42,12 @@ class RunOptions:
     secrets_file: Path | None = None
     cli_vars: dict[str, Any] = field(default_factory=dict)       # --var name=value
     vars_file: dict[str, Any] = field(default_factory=dict)      # --vars file.yaml
+    from_name: str | None = None      # --from: label or chapter
+    to_name: str | None = None        # --to
+    step_mode: bool = False           # --step: ask before each step
+    burn_subtitles: bool = False      # --burn-subtitles
+    cast: bool = False                # --cast: asciinema file per console
+    target_kind: str | None = None    # --target: overrides target.kind
 
 
 @dataclass
@@ -79,7 +85,9 @@ class RunContext:
         self.section = "steps"
         self.executed_mismatches: list[dict[str, str]] = []
         self.secrets: dict[str, str] = {}
-        self._typo_notice = False
+        self.paused_at: float | None = None  # when `record: pause` ran
+        self.vm: Any = None  # the VMwareTarget, for `vm` steps
+        self.restart_guest: Any = None  # Take.restart_guest (revert/reboot + rebuild)
         self.defines = parsed.defines
         self.engine: Engine | None = None
         # Per-task state: each `parallel` branch runs in its own asyncio task and gets its
@@ -204,14 +212,11 @@ class RunContext:
             return random.Random()
         return random.Random(f"{seed}:{key}")
 
-    def typo_notice(self) -> None:
-        if not self._typo_notice:
-            self._typo_notice = True
-            self.log("info", "auto-typos are enabled in the scenario but arrive in phase 4; "
-                             "this version types without typos")
 
     async def screenshot(self, path: Path) -> bool:
-        if not self.display:
+        if self.recorder.segments:  # recording: the recorder knows where the screen is
+            return await self.recorder.screenshot(path)
+        if not self.display or not self.session.transport.is_local:
             return False
         from ..recorder import take_screenshot
 
