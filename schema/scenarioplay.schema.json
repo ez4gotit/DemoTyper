@@ -1650,6 +1650,14 @@
         },
         "screenshots": {
           "$ref": "#/$defs/ScreenshotDefaults"
+        },
+        "buffers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Named paste buffers (a NAME: text map). A `paste` step with {buffer: NAME} inserts one instantly. Values may use {{ }} templates.",
+          "title": "Buffers",
+          "type": "object"
         }
       },
       "title": "Defaults",
@@ -3319,6 +3327,131 @@
       "title": "ParallelBlock",
       "type": "object"
     },
+    "PasteBuffer": {
+      "additionalProperties": false,
+      "properties": {
+        "buffer": {
+          "description": "Name of a `defaults.buffers` entry to insert.",
+          "title": "Buffer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "buffer"
+      ],
+      "title": "PasteBuffer",
+      "type": "object"
+    },
+    "PasteStep": {
+      "additionalProperties": false,
+      "description": "Instantly insert a substring at the cursor (a pseudo-paste) instead of typing it\ncharacter by character - handy for long, boring tokens (a base64 blob, a long path).\n\n`paste: \"text\"` inserts literal text (templates allowed); `paste: {buffer: name}`\ninserts a named buffer from `defaults.buffers`. It is character-safe and does not use\nthe OS clipboard or bracketed paste - the characters are just sent in one burst.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console",
+          "description": "Run in this console instead of the current one."
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout",
+          "description": "Seconds to wait before failing (default: defaults.timeout)."
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ],
+          "description": "What to do when the step fails: fail, continue, {retry: N, delay: S}, or a list of recovery steps."
+        },
+        "when": {
+          "description": "Run the step only if this expression or condition holds.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label",
+          "description": "A name for --from/--to and the log."
+        },
+        "wait_for": {
+          "$ref": "#/$defs/Condition",
+          "description": "After the input, wait for this condition instead of the default."
+        },
+        "expect": {
+          "$ref": "#/$defs/Condition",
+          "description": "Same as wait_for; a plain string is a regex."
+        },
+        "paste": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/PasteBuffer"
+            }
+          ],
+          "title": "Paste"
+        },
+        "enter": {
+          "default": false,
+          "title": "Enter",
+          "type": "boolean",
+          "description": "Press Enter after typing."
+        }
+      },
+      "required": [
+        "paste"
+      ],
+      "title": "PasteStep",
+      "type": "object"
+    },
     "PauseStep": {
       "additionalProperties": false,
       "description": "Wait a fixed number of seconds so the viewer can read (scaled by --speed).",
@@ -4911,6 +5044,9 @@
           "$ref": "#/$defs/ParallelBlock"
         },
         {
+          "$ref": "#/$defs/PasteStep"
+        },
+        {
           "$ref": "#/$defs/PauseStep"
         },
         {
@@ -5387,7 +5523,7 @@
     },
     "TypeStep": {
       "additionalProperties": false,
-      "description": "Type text character by character. Press Enter only with `enter: true`.",
+      "description": "Type text character by character. Press Enter only with `enter: true`.\n\nWith `tab: true`, the text is typed as a *prefix* and then Tab is pressed so the shell\nautocompletes the rest (e.g. `type: \"cat /etc/host\"` + `tab: true` -> /etc/hostname).\nPair it with `expect`/`wait_for` to confirm the completion; typos are off on the prefix\nso completion is not thrown off.",
       "properties": {
         "console": {
           "anyOf": [
@@ -5517,6 +5653,12 @@
           "default": false,
           "description": "Press Enter for each newline in the text. Without this, text with newlines is refused.",
           "title": "Enter Newlines",
+          "type": "boolean"
+        },
+        "tab": {
+          "default": false,
+          "description": "After typing, press Tab to autocomplete the rest.",
+          "title": "Tab",
           "type": "boolean"
         }
       },

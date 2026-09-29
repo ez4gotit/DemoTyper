@@ -238,6 +238,10 @@ class Defaults(Strict):
     answers: list[AnswerRule] = Field(
         default_factory=list, description="Prompts answered automatically in every console.")
     screenshots: ScreenshotDefaults = Field(default_factory=ScreenshotDefaults)
+    buffers: dict[str, str] = Field(
+        default_factory=dict, description="Named paste buffers (a NAME: text map). A `paste` "
+                                          "step with {buffer: NAME} inserts one instantly. "
+                                          "Values may use {{ }} templates.")
 
 
 class ConsoleSpec(Strict):

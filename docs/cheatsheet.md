@@ -28,7 +28,8 @@ finally: [ … ]    # always runs, not recorded
   expect: 'regex'                # or wait_for: {…}
   check_exit: true
   capture: name                  # or {name, regex, group, lines}
-- type: "text"                   # enter: true, enter_newlines: true
+- type: "text"                   # enter: true, enter_newlines: true, tab: true (autocomplete)
+- paste: "text"                  # or {buffer: name}: insert instantly (pseudo-paste)
 - enter: true                    # or a count
 - key: C-c                       # Tab Up Down Escape F1-F12 M-x PageDown; repeat: N
 - secret: NAME                   # into a hidden prompt; enter: true

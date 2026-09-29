@@ -195,5 +195,9 @@ class Console:
     async def send_char(self, ch: str) -> None:
         await self.tmux.send_literal(self.pane, ch)
 
+    async def send_text(self, text: str) -> None:
+        """Send a whole string in one call, so it appears at once (a pseudo-paste)."""
+        await self.tmux.send_literal(self.pane, text)
+
     async def send_key(self, key: str) -> None:
         await self.tmux.send_key(self.pane, key)

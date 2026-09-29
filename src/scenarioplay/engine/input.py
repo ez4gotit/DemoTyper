@@ -164,6 +164,31 @@ async def verify_line(ctx: RunContext, console: Console, expected: str) -> None:
                          "pressed", intended=expected, screen=got)
 
 
+async def paste_text(ctx: RunContext, console: Console, text: str, *, enter: bool) -> None:
+    """Instantly insert `text` at the cursor (a pseudo-paste: all characters in one send,
+    no per-character typing). Character-safe; not the OS clipboard or bracketed paste."""
+    await ctx.activate(console)
+    info = await console.info()
+    at_shell = not info.alternate_on and console.prompt_matches(
+        await console.current_line_before_cursor(info))
+    console.input_start = (info.cursor_abs, info.cursor_x) if at_shell else None
+    await _mark_input(console)
+    if text:
+        await console.send_text(text)
+    await asyncio.sleep(0.05)          # let the pane repaint before Enter
+    if enter:
+        await press_enter(ctx, console)
+    else:
+        console.output_start = (await console.info()).cursor_abs
+
+
+async def press_tab(ctx: RunContext, console: Console) -> None:
+    """Press Tab (shell autocomplete). The completion is left on the line for a following
+    `wait_for`/`expect` or Enter."""
+    await ctx.activate(console)
+    await console.send_key("Tab")
+
+
 async def press_enter(ctx: RunContext, console: Console, count: int = 1) -> None:
     await ctx.activate(console)
     info = await console.info()

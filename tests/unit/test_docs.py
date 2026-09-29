@@ -57,6 +57,8 @@ DEFINES = """\
 
 PRELUDE = """\
 target: {kind: vmware, vmx: /vms/lab.vmx, snapshot: clean, record: host}
+defaults:
+  buffers: {pubkey: "ssh-ed25519 AAAA... user@host", token: "abc"}
 layout: grid
 consoles:
   - {name: main}

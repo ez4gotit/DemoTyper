@@ -52,6 +52,7 @@ finally: []                     # steps that always run at the end (not in the v
 | `clear_after_setup` | `true` | Clear the consoles after `setup`, so the video starts clean. |
 | `answers` | `[]` | Prompts answered automatically, such as the sudo password. |
 | `screenshots` | | `{chapters: none \| start \| end \| both, text: false}`: automatic screenshots at chapter boundaries, and whether every screenshot also saves the console text. |
+| `buffers` | `{}` | Named paste buffers (`NAME: text`). A `paste: {buffer: NAME}` step inserts one instantly. Values may use `{{ }}`. |
 
 ## `consoles`
 

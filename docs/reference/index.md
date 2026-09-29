@@ -16,6 +16,7 @@ One page per action and control block, generated from the code (options, types, 
 - [`key`](key.md): Send a key or combination: C-c, C-d, C-l, Tab, Up, Down, Escape, F1-F12, M-x.
 - [`log`](log.md): Write a line to the take log only.
 - [`open_console`](open_console.md): Open a declared console mid-take (one with `start: false`, or one closed earlier).
+- [`paste`](paste.md): Instantly insert a substring at the cursor (a pseudo-paste) instead of typing it character by character - handy for long, boring tokens (a base64 blob, a long path).
 - [`pause`](pause.md): Wait a fixed number of seconds so the viewer can read (scaled by --speed).
 - [`record`](record.md): Control the video at any point.
 - [`run`](run.md): Type a command, press Enter and wait for the prompt (or for `expect` / `wait_for`).

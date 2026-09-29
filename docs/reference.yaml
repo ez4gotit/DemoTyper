@@ -40,6 +40,7 @@ main:
   continue: "true."
   stop: "success or failure."
   parallel: "Branches: a list of {console, steps}."
+  paste: "Text to insert instantly, or {buffer: name}."
 
 actions:
   run:
@@ -74,9 +75,32 @@ actions:
         - type: "cat > notes.txt\nfirst line\nsecond line"
           enter_newlines: true
         - key: C-d
+      - |
+        - type: "cat /etc/host"      # type a prefix, then Tab-complete the rest
+          tab: true
+          expect: "hostname"
+          enter: true
     mistakes:
       - "Text with newlines is refused unless `enter_newlines: true`, so nothing is run by accident."
-      - "A Tab inside the text would trigger completion; send it with `key: Tab`."
+      - "A Tab inside the text would trigger completion; send it with `key: Tab`, or use `tab: true` to autocomplete a prefix."
+      - "With `tab: true`, pair it with `expect`/`wait_for`: the completion is not typed, so add a check that it produced the intended command."
+  paste:
+    examples:
+      - |
+        # a long token typed instantly instead of character by character
+        - type: "echo "
+        - paste: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0"
+          enter: true
+      - |
+        # pubkey is defined once under defaults.buffers
+        - type: "echo '"
+        - paste: { buffer: pubkey }
+        - type: "' >> ~/.ssh/authorized_keys"
+          enter: true
+    mistakes:
+      - "`paste` inserts the characters in one burst (a pseudo-paste); it is not the OS clipboard or bracketed paste, and does not bypass the shell."
+      - "A buffer must be defined under `defaults.buffers`; `paste: {buffer: name}` fails validation otherwise."
+      - "To paste a captured value, use a template: `paste: \"{{ my_capture }}\"`."
   enter:
     examples:
       - |

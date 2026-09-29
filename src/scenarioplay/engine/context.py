@@ -219,6 +219,15 @@ class RunContext:
             return random.Random()
         return random.Random(f"{seed}:{key}")
 
+    def buffer(self, name: str) -> str:
+        """A named paste buffer's value, with {{ }} templates filled in."""
+        from ..lang import parse_template
+
+        raw = self.defaults.buffers.get(name)
+        if raw is None:
+            raise StepFailed(f"no paste buffer {name!r} (define it in defaults.buffers)")
+        return parse_template(raw).render(self.scope)
+
 
     async def screenshot(self, name: str, console: Console | None = None,
                          text: bool | None = None) -> list[str]:
