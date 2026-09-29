@@ -56,8 +56,11 @@ async def screen_is_black(display: str) -> bool | None:
     try:
         out, _ = await asyncio.wait_for(proc.communicate(), 15)
     except asyncio.TimeoutError:
-        proc.kill()
         return None
+    finally:
+        if proc.returncode is None:  # timed out or cancelled: do not leave it behind
+            proc.kill()
+            await proc.wait()
     if proc.returncode != 0 or not out:
         return None
     return max(out) < 24
@@ -117,6 +120,11 @@ class X11Recorder(Recorder):
             raise EnvironmentProblem(f"ffmpeg exited at start: {self._stderr_tail()}")
         self._started = True
         self.log("info", f"recording display {self.display} to {self.raw_path.name}")
+        # In the background: a full-frame grab can take seconds on a cold start, and
+        # waiting for it would stretch the lead-in.
+        self._tasks.append(asyncio.create_task(self._warn_if_black()))
+
+    async def _warn_if_black(self) -> None:
         if await screen_is_black(self.display):
             self.log("warning", BLACK_WARNING)
 
@@ -179,6 +187,7 @@ class X11Recorder(Recorder):
                 proc.kill()
         for task in self._tasks:
             task.cancel()
+        await asyncio.gather(*self._tasks, return_exceptions=True)
 
     def frame0_wall(self) -> float | None:
         return self._t0_exact or self._t0_estimate

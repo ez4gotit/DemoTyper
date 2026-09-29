@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import shlex
 from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
 from pydantic import Field, PositiveFloat, PrivateAttr
@@ -71,11 +70,8 @@ class Probe:
         return self._status  # type: ignore[return-value]
 
     async def run(self, command: str, timeout: float = 30.0) -> Result:
-        """Run a shell command on the target, out of view, in the console's directory."""
-        transport = self.console.tmux.transport
-        cwd = transport.expand_user(self.console.spec.cwd)
-        return await transport.run(
-            ["bash", "-c", f"cd {shlex.quote(cwd)} 2>/dev/null; {command}"], timeout=timeout)
+        """Run a shell command out of view on the console's machine, in its directory."""
+        return await self.console.run_out_of_view(command, timeout=timeout)
 
 
 class Condition(Strict):

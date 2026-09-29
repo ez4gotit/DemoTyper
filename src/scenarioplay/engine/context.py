@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import os
 import random
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -75,20 +76,72 @@ class RunContext:
         self.reporter = reporter
         self.session = session
         self.recorder = recorder
-        self.current = parsed.model.consoles[0].name
         self.section = "steps"
-        self.last = LastResult()
-        self.record: StepRecord | None = None
         self.executed_mismatches: list[dict[str, str]] = []
         self.secrets: dict[str, str] = {}
         self._typo_notice = False
         self.defines = parsed.defines
-        self.call_depth = 0
         self.engine: Engine | None = None
-        self.scope = Scope({}, [{}])  # replaced by make_scope() once secrets are known
+        # Per-task state: each `parallel` branch runs in its own asyncio task and gets its
+        # own current console, step record, variable scope (loop variables) and last.*.
+        self._current: ContextVar[str] = ContextVar("current")
+        self._record: ContextVar[StepRecord | None] = ContextVar("record", default=None)
+        self._scope: ContextVar[Scope] = ContextVar("scope")
+        self._last: ContextVar[LastResult] = ContextVar("last")
+        self._depth: ContextVar[int] = ContextVar("call_depth", default=0)
+        self._in_parallel: ContextVar[bool] = ContextVar("in_parallel", default=False)
+        self._current.set(parsed.model.consoles[0].name)
+        self._scope.set(Scope({}, [{}]))  # replaced by make_scope() once secrets are known
+        self._last.set(LastResult())
         from .answers import Responder
 
         self.responder = Responder(self)
+
+    # --- per-task state ----------------------------------------------------------------
+
+    @property
+    def current(self) -> str:
+        return self._current.get()
+
+    @current.setter
+    def current(self, name: str) -> None:
+        self._current.set(name)
+
+    @property
+    def record(self) -> StepRecord | None:
+        return self._record.get()
+
+    @record.setter
+    def record(self, value: StepRecord | None) -> None:
+        self._record.set(value)
+
+    @property
+    def scope(self) -> Scope:
+        return self._scope.get()
+
+    @property
+    def last(self) -> LastResult:
+        return self._last.get()
+
+    @property
+    def call_depth(self) -> int:
+        return self._depth.get()
+
+    @call_depth.setter
+    def call_depth(self, value: int) -> None:
+        self._depth.set(value)
+
+    @property
+    def in_parallel(self) -> bool:
+        return self._in_parallel.get()
+
+    def enter_branch(self, console: str) -> None:
+        """Called at the start of a `parallel` branch's task (its own context copy)."""
+        self._current.set(console)
+        self._scope.set(self.scope.fork())
+        self._last.set(LastResult(**{k: getattr(self.last, k)
+                                     for k in ("exit_code", "output", "matched")}))
+        self._in_parallel.set(True)
 
     def make_scope(self, file_vars: dict[str, Any], cli_vars: dict[str, Any],
                    file_overrides: dict[str, Any]) -> None:
@@ -103,8 +156,8 @@ class RunContext:
                      "dir": str(self.take.dir)},
             "last": last,
         }
-        self.scope = Scope(builtins, [dict(file_vars), dict(cli_vars), dict(file_overrides),
-                                      {}])
+        self._scope.set(Scope(builtins, [dict(file_vars), dict(cli_vars), dict(file_overrides),
+                                         {}]))
 
     @property
     def speed(self) -> float:
@@ -122,7 +175,20 @@ class RunContext:
     # --- consoles and typing -----------------------------------------------------------
 
     def console_for(self, step: StepModel, name: str | None = None) -> Console:
-        return self.session.consoles[name or step.console or self.current]
+        name = name or step.console or self.current
+        console = self.session.consoles.get(name)
+        if console is None:
+            state = "closed" if name in self.session.closed else "not open yet"
+            raise StepFailed(f"console {name!r} is {state}; open it with `open_console`")
+        return console
+
+    async def activate(self, console: Console) -> None:
+        """Before input: show and highlight this console (spec 9.2). In parallel branches
+        split-layout panes stay as they are, so two consoles can be typed into at once."""
+        if self.in_parallel and not self.session.windowed:
+            return
+        if await self.session.activate(console):
+            await self.sleep(0.35)  # let the viewer's eye follow the switch
 
     def typing_params(self, console: Console, step_spec: TypingSpec | None) -> TypingParams:
         levels = [self.defaults.typing, console.spec.typing, step_spec]

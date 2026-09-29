@@ -42,9 +42,12 @@ class FileCondition(Condition):
 
     async def check(self, probe: Probe) -> str | None:
         path = self.file
-        if path.startswith("~"):
-            path = probe.console.tmux.transport.expand_user(path)
-        res = await probe.run(f"test -e {shlex.quote(path)}")
+        if path == "~" or path.startswith("~/"):
+            # Let the console's machine expand ~ (it may be another machine).
+            quoted = "~" + (f"/{shlex.quote(path[2:])}" if len(path) > 2 else "")
+        else:
+            quoted = shlex.quote(path)
+        res = await probe.run(f"test -e {quoted}")
         return path if res.rc == 0 else None
 
 

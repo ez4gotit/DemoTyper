@@ -70,6 +70,10 @@ class RunStep(TypingStep):
         spec = next((c for c in checker.scenario.consoles if c.name == name), None)
         if self.check_exit and spec is not None and spec.shell == "sh":
             checker.error(self, "`check_exit` needs a bash or zsh console", "check_exit")
+        if self.check_exit and spec is not None and spec.host:
+            checker.error(self, "`check_exit` needs the hidden shell hook, which cannot be "
+                                "installed on another machine; check with `exec` or "
+                                "`expect` instead", "check_exit")
 
     async def execute(self, ctx: RunContext) -> None:
         problem = text_problem(self.run, newlines_ok=False)

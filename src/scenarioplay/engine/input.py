@@ -94,6 +94,7 @@ async def type_text(ctx: RunContext, console: Console, text: str, *,
                     enter_newlines: bool = False, secret: bool = False) -> bool:
     """Type `text` (and press Enter if asked). Returns True if the last line was typed on a
     shell command line and verified before Enter. `key` seeds reproducible randomness."""
+    await ctx.activate(console)
     params = ctx.typing_params(console, typing)
     rng = ctx.rng(key, params)
     lines = text.split("\n") if enter_newlines else [text]
@@ -156,6 +157,7 @@ async def verify_line(ctx: RunContext, console: Console, expected: str) -> None:
 
 
 async def press_enter(ctx: RunContext, console: Console, count: int = 1) -> None:
+    await ctx.activate(console)
     info = await console.info()
     console.output_start = info.cursor_abs + 1
     await _mark_input(console)
@@ -167,6 +169,7 @@ async def press_enter(ctx: RunContext, console: Console, count: int = 1) -> None
 
 
 async def press_key(ctx: RunContext, console: Console, key: str, repeat: int = 1) -> None:
+    await ctx.activate(console)
     info = await console.info()
     console.output_start = info.cursor_abs
     await _mark_input(console)

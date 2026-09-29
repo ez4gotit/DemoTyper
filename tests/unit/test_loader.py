@@ -127,12 +127,12 @@ def test_two_actions_in_one_step(load):
 def test_future_keywords_explain_phase(load):
     parsed, problems = load("""
         steps:
-          - parallel: []
           - vm: {revert: clean}
+          - record: pause
     """)
     assert parsed is None
     messages = " ".join(p.message for p in problems)
-    assert "phase 3" in messages and "parallel" in messages and "phase 4" in messages
+    assert "`vm`" in messages and "`record`" in messages and "phase 4" in messages
 
 
 def test_expect_string_is_regex(load):
@@ -170,15 +170,19 @@ def test_newline_needs_enter_newlines(load):
     assert parsed is not None
 
 
-def test_phase1_limits(load):
+def test_console_layout_checks(load):
     parsed, problems = load("""
         layout: tabs
-        consoles: [{name: a}, {name: b}]
+        consoles: [{name: a, size: 30%}, {name: b, start: false}]
         steps: [{run: ls}]
     """)
-    assert parsed is None
-    text = " ".join(p.message for p in problems)
-    assert "phase 3" in text
+    assert parsed is not None
+    assert ["`size` only applies" in p.message for p in problems] == [True]
+    parsed, problems = load("""
+        consoles: [{name: a, start: false}]
+        steps: [{run: ls}]
+    """)
+    assert parsed is None and "must start open" in problems[0].message
 
 
 def test_declared_variables_validate_cleanly(load):

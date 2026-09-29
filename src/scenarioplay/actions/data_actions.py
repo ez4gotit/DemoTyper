@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import re
-import shlex
 from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field, PositiveInt
@@ -142,12 +141,10 @@ class ExecStep(StepModel):
 
     async def execute(self, ctx: RunContext) -> None:
         console = ctx.console_for(self)
-        transport = console.tmux.transport
-        cwd = transport.expand_user(self.cwd or console.spec.cwd)
         timeout = self.timeout or ctx.defaults.timeout
         try:
-            res = await transport.run(
-                ["bash", "-c", f"cd {shlex.quote(cwd)} && {self.exec}"], timeout=timeout)
+            # On the console's machine: the target, or the console's `host`.
+            res = await console.run_out_of_view(self.exec, cwd=self.cwd, timeout=timeout)
         except asyncio.TimeoutError:
             raise StepFailed(f"exec: `{self.exec}` did not finish within {timeout:g}s") \
                 from None

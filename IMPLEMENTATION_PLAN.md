@@ -363,6 +363,43 @@ Decisions made while building phase 2:
 
 ---
 
+## 6.6 Phase 3 status
+
+Implemented: WP 3.1–3.5.
+
+- **Consoles:** each has its own prompt, cwd, environment, hook and answer rules. `console:` works on every step, and `use` changes the current console.
+- **Layouts:**
+  - `split-horizontal`, `split-vertical` and `grid` place panes in one window, in the order declared. `size` works in the two split layouts.
+  - `tabs` gives one window per console, with a tab bar.
+  - Panes show titles on their borders, and the console being typed into is highlighted.
+- **Console actions:** `focus`, including zoom, plus `open_console` and `close_console`.
+- **`parallel`** supports `wait: all` and `wait: any`, stops the other branches when one fails, and gives each branch its own variables and `last.*`.
+- **Remote consoles (`host:`):** ssh runs inside the pane. Out-of-view `exec` and the system conditions run on that machine.
+
+**Acceptance:** `examples/multi-console.yaml` (server, client and logs in a grid, started with `parallel`) runs end to end (`tests/integration/test_acceptance_phase3.py`). It was also recorded under Xvfb at 1920×1080, with frames checked:
+- the two branches type at the same moment;
+- the pane titles are readable and the active one is highlighted;
+- long commands wrap cleanly;
+- the zoomed access log shows all three requests.
+
+**Tests:** 151, all passing under Xvfb.
+
+Decisions made while building phase 3:
+
+1. **Split direction follows tmux's naming.** `split-horizontal` puts panes side by side, `split-vertical` stacks them, and `grid` is tmux's `tiled`. Panes keep their YAML order because each new pane splits the previous one.
+2. **`single` with several consoles** shows one console at a time, switching to the one being typed into (a warning suggests `tabs` or a split layout).
+3. **Consoles are declared up front.** `start: false` declares a console that `open_console` opens later, so the validator knows every console name. A closed console's text still goes into its transcript. Using a closed console fails the step with a clear message.
+4. **Input activates its console:** typing, Enter and keys first select the pane or window, with a short pause so viewers can follow. Waits don't switch consoles. In `parallel` branches, split-layout panes aren't switched, so two consoles can be typed into at once.
+5. **Per-branch state uses asyncio context variables:** current console, step record, variable scope (loop variables) and `last.*`. Global variables are shared.
+6. **Remote consoles:**
+   - The pane runs `ssh -t` with `StrictHostKeyChecking=accept-new`, then `cd <cwd>; exec $SHELL -l` on the remote side.
+   - Out-of-view commands use `ssh -o BatchMode=yes`.
+   - There's no hook there: the prompt is found by the regex alone, `check_exit` is rejected, and `ssh.program` can be overridden (the tests use a stand-in).
+7. **The black-screen check runs in the background**, because a full-frame grab on a cold start took about 3 s and was stretching the lead-in.
+8. **Window size under bare Xvfb:** without a window manager the terminal can't go full screen, and a fixed xterm geometry wider than the screen silently cuts off the right edge. On a desktop the window manager's full-screen mode avoids this. The take log records the window size in cells.
+
+---
+
 ## 7. Proposed answers to the spec's open questions
 
 | Question | Recommendation |

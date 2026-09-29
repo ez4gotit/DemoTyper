@@ -156,6 +156,7 @@ class Take:
             self.terminal = TerminalWindow(target.terminal, attach, self.display)
             await self.terminal.open()
             await self.session.wait_attached()
+            await self.session.arrange()  # pane sizes for the terminal's real size
         else:
             self.log("info", "headless: no terminal window (attach with: "
                              f"tmux -L {self.session.tmux.socket} attach)")
@@ -266,7 +267,7 @@ class Take:
 
     async def _write_transcripts(self) -> None:
         assert self.session
-        for name, console in self.session.consoles.items():
+        for name, console in self.session.all_consoles().items():
             try:
                 lines = await console.history()
             except EnvironmentProblem:

@@ -1176,6 +1176,91 @@
         "clear"
       ]
     },
+    "CloseConsoleStep": {
+      "additionalProperties": false,
+      "description": "Close a console mid-take; its text still goes into the transcript.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "close_console": {
+          "title": "Close Console",
+          "type": "string"
+        }
+      },
+      "required": [
+        "close_console"
+      ],
+      "title": "CloseConsoleStep",
+      "type": "object"
+    },
     "Condition": {
       "description": "A wait condition (spec section 7). A bare string is a regex.",
       "anyOf": [
@@ -1297,19 +1382,43 @@
             }
           ],
           "default": null,
+          "description": "Run this console on another machine: `host` or `user@host`. The runner opens it with ssh inside the pane (key-based login).",
           "title": "Host"
         },
-        "size": {
+        "ssh": {
           "anyOf": [
             {
-              "type": "string"
+              "$ref": "#/$defs/SshSpec"
             },
             {
               "type": "null"
             }
           ],
           "default": null,
+          "description": "Options for `host`: user, key, port."
+        },
+        "size": {
+          "anyOf": [
+            {
+              "pattern": "^\\d+%?$",
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Pane size in split layouts: `30%` or a number of cells.",
           "title": "Size"
+        },
+        "start": {
+          "default": true,
+          "description": "Open at the start; false = open later with `open_console`.",
+          "title": "Start",
+          "type": "boolean"
         }
       },
       "required": [
@@ -1989,6 +2098,103 @@
         "file"
       ],
       "title": "FileCondition",
+      "type": "object"
+    },
+    "FocusStep": {
+      "additionalProperties": false,
+      "description": "Bring a console to the front and highlight it. `zoom: true` makes its pane fill the\nscreen for readability; `zoom: false` restores the layout.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "focus": {
+          "title": "Focus",
+          "type": "string"
+        },
+        "zoom": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Zoom"
+        }
+      },
+      "required": [
+        "focus"
+      ],
+      "title": "FocusStep",
       "type": "object"
     },
     "ForEachBlock": {
@@ -2776,6 +2982,189 @@
         "retry"
       ],
       "title": "OnFailRetry",
+      "type": "object"
+    },
+    "OpenConsoleStep": {
+      "additionalProperties": false,
+      "description": "Open a declared console mid-take (one with `start: false`, or one closed earlier).",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "open_console": {
+          "title": "Open Console",
+          "type": "string"
+        }
+      },
+      "required": [
+        "open_console"
+      ],
+      "title": "OpenConsoleStep",
+      "type": "object"
+    },
+    "ParallelBlock": {
+      "additionalProperties": false,
+      "description": "Run branches at the same time, one console per branch (spec 9.3).\n\n`wait: all` (default) ends when every branch is done; `wait: any` ends when the first\nbranch is done and stops the others. A failing branch stops the others and fails the\nblock.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "parallel": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Parallel",
+          "type": "array"
+        },
+        "wait": {
+          "default": "all",
+          "enum": [
+            "all",
+            "any"
+          ],
+          "title": "Wait",
+          "type": "string"
+        }
+      },
+      "required": [
+        "parallel"
+      ],
+      "title": "ParallelBlock",
       "type": "object"
     },
     "PauseStep": {
@@ -3939,6 +4328,20 @@
           "exclusiveMinimum": 0,
           "title": "Port",
           "type": "integer"
+        },
+        "options": {
+          "description": "Extra ssh options, e.g. ['-o', 'ProxyJump=bastion'].",
+          "items": {
+            "type": "string"
+          },
+          "title": "Options",
+          "type": "array"
+        },
+        "program": {
+          "default": "ssh",
+          "description": "The ssh client to run.",
+          "title": "Program",
+          "type": "string"
         }
       },
       "title": "SshSpec",
@@ -3969,6 +4372,9 @@
           "$ref": "#/$defs/ClearStep"
         },
         {
+          "$ref": "#/$defs/CloseConsoleStep"
+        },
+        {
           "$ref": "#/$defs/ContinueStep"
         },
         {
@@ -3979,6 +4385,9 @@
         },
         {
           "$ref": "#/$defs/ExecStep"
+        },
+        {
+          "$ref": "#/$defs/FocusStep"
         },
         {
           "$ref": "#/$defs/ForEachBlock"
@@ -3994,6 +4403,12 @@
         },
         {
           "$ref": "#/$defs/LogStep"
+        },
+        {
+          "$ref": "#/$defs/OpenConsoleStep"
+        },
+        {
+          "$ref": "#/$defs/ParallelBlock"
         },
         {
           "$ref": "#/$defs/PauseStep"
@@ -4027,6 +4442,9 @@
         },
         {
           "$ref": "#/$defs/UntilBlock"
+        },
+        {
+          "$ref": "#/$defs/UseStep"
         },
         {
           "$ref": "#/$defs/WaitForStep"
@@ -5044,6 +5462,91 @@
         "until"
       ],
       "title": "UntilBlock",
+      "type": "object"
+    },
+    "UseStep": {
+      "additionalProperties": false,
+      "description": "Make a console the current one: later steps without `console:` run there.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "use": {
+          "title": "Use",
+          "type": "string"
+        }
+      },
+      "required": [
+        "use"
+      ],
+      "title": "UseStep",
       "type": "object"
     },
     "WaitForStep": {

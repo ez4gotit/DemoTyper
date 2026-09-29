@@ -62,6 +62,13 @@ class Scope(Env):
                 return
         self.runtime[name] = value
 
+    def fork(self) -> Scope:
+        """A scope for a parallel branch: same globals, its own stack of locals (the
+        enclosing locals stay visible)."""
+        other = Scope(self.builtins, self.globals)
+        other.locals = list(self.locals)
+        return other
+
     def snapshot(self) -> dict[str, Any]:
         """Effective global variables (for the resolved scenario and the report)."""
         out: dict[str, Any] = {}

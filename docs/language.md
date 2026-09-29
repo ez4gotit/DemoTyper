@@ -1,4 +1,4 @@
-# Variables, conditions and blocks (phase 2)
+# Variables, conditions, blocks and consoles
 
 This page adds to the [quick start](quickstart.md). The full wiki, with one page per
 action and a cookbook, is phase 4.
@@ -148,6 +148,67 @@ The keyword takes the block's main value, and the other fields sit beside it.
 - exec: "systemctl is-active nginx"  # out of view; sets last.exit_code and last.output
   capture: state
 ```
+
+## Several consoles
+
+```yaml
+layout: grid          # single | split-horizontal | split-vertical | grid | tabs
+consoles:
+  - { name: server, title: "Server" }
+  - { name: client, title: "Client", size: 40% }   # size: split layouts only
+  - { name: logs, title: "Access log" }
+  - { name: extra, start: false }                   # opened later with open_console
+  - name: box                                       # on another machine, over ssh
+    host: 192.168.56.20
+    ssh: { user: student, key: ~/.ssh/lab, port: 22 }
+    cwd: /srv/app
+```
+
+| Layout | On screen |
+| --- | --- |
+| `split-horizontal` | Side by side, in the order declared. `size` sets a pane's width. |
+| `split-vertical` | Stacked top to bottom. `size` sets a pane's height. |
+| `grid` | Tiled. |
+| `tabs` | One console at a time, with a tab bar. |
+| `single` | One console at a time, no tab bar (the default; meant for one console). |
+
+In split layouts every pane shows its `title` on its top border. The console being typed
+into gets a highlighted border and title, and in `tabs` its tab comes to the front.
+
+```yaml
+- run: "curl localhost"
+  console: client          # this step only
+- use: client              # later steps without `console:` run here
+- focus: logs              # bring forward and highlight without typing
+  zoom: true               # fill the screen; `zoom: false` restores the layout
+- open_console: extra
+- close_console: extra     # its text is kept for the transcript
+- parallel:                # at the same time, one console per branch
+    - console: server
+      steps:
+        - type: "python3 -m http.server 8080"
+          enter: true
+          wait_for: { text: "Serving HTTP" }
+    - console: logs
+      steps:
+        - type: "tail -f access.log"
+          enter: true
+          wait_for: { idle: 1 }
+  wait: all                # or any: stop the other branches when one is done
+- wait_for: { text: "GET / HTTP", console: logs }   # wait on another console
+```
+
+Inside a `parallel` branch every step runs in the branch's console. Each branch has its own
+loop variables and `last.*`. If a branch fails, the others are stopped and the block
+fails.
+
+A console on another machine (`host`) is opened with `ssh -t` inside its pane, so the
+typing and the remote prompt appear in the video. Login must work with a key; a password
+can be answered with an [answer rule](quickstart.md#passwords-sudo-and-others) on that
+console. There is no hidden hook on the remote shell, so the prompt is found by the prompt
+regex, and `check_exit` is not available (use `exec` or `expect`). `exec` and the
+`exec`/`file`/`port` conditions on that console run on the remote machine over
+`ssh -o BatchMode=yes`.
 
 ## When a step fails
 

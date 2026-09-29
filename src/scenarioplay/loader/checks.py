@@ -195,19 +195,26 @@ class Checker:
     def check_scenario(self) -> None:
         s = self.scenario
         top = self.locs
-        if len(s.consoles) > 1:
-            self.problems.append(Problem(
-                "more than one console is not supported in this version (planned for phase 3)",
-                top.get(("consoles", 1))))
-        if s.layout != "single":
-            self.problems.append(Problem(
-                f"layout {s.layout!r} is not supported in this version (planned for phase 3)",
-                top.get(("layout",))))
+        split = s.layout in ("split-horizontal", "split-vertical")
         for i, c in enumerate(s.consoles):
-            if c.host:
+            if c.size is not None and not split:
                 self.problems.append(Problem(
-                    "consoles on another machine (`host`) are planned for phase 3",
-                    top.get(("consoles", i, "host"))))
+                    f"console {c.name!r}: `size` only applies to split-horizontal and "
+                    f"split-vertical layouts (layout is {s.layout})",
+                    top.get(("consoles", i, "size")), "warning"))
+            if c.ssh is not None and not c.host:
+                self.problems.append(Problem(
+                    f"console {c.name!r}: `ssh` options need `host`",
+                    top.get(("consoles", i, "ssh"))))
+            if c.host and c.shell != "bash":
+                self.problems.append(Problem(
+                    f"console {c.name!r}: `shell` is ignored on another machine (its login "
+                    "shell is used)", top.get(("consoles", i, "shell")), "warning"))
+        if s.layout == "single" and len(s.consoles) > 1:
+            self.problems.append(Problem(
+                "layout `single` shows one console at a time, switching to the one being "
+                "typed into; use `tabs` to show a tab bar or a split layout to see them "
+                "together", top.get(("layout",)) or top.get(("consoles",)), "warning"))
         if s.target.kind != "local":
             self.problems.append(Problem(
                 "the vmware target is planned for phase 4; `run` will refuse this scenario",

@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import re
+import shlex
 from dataclasses import dataclass
 
 from ..loader.model import ConsoleSpec
+from ..transport import Result
+from .remote import remote_run_argv
 from .tmux import Tmux
 
 _INFO_FORMAT = ("#{history_size} #{cursor_x} #{cursor_y} #{alternate_on} #{pane_dead} "
@@ -66,6 +69,24 @@ class Console:
         # (absolute line, column) where the text of the current command line starts.
         self.input_start: tuple[int, int] | None = None
         self._tty: str | None = None
+        self.window: str | None = None  # tmux window id
+        self.closed = False
+        self.final_history: list[str] | None = None  # kept when the console is closed
+
+    @property
+    def remote(self) -> bool:
+        return self.spec.host is not None
+
+    async def run_out_of_view(self, command: str, *, cwd: str | None = None,
+                              timeout: float = 30.0) -> Result:
+        """Run a shell command on this console's machine without typing it on screen."""
+        transport = self.tmux.transport
+        if self.remote:
+            return await transport.run(remote_run_argv(self.spec, command, cwd),
+                                       timeout=timeout)
+        where = transport.expand_user(cwd or self.spec.cwd)
+        return await transport.run(
+            ["bash", "-c", f"cd {shlex.quote(where)} 2>/dev/null; {command}"], timeout=timeout)
 
     # --- reading -----------------------------------------------------------------------
 
@@ -114,6 +135,8 @@ class Console:
 
     async def history(self) -> list[str]:
         """Everything in the pane, scrollback included (for transcripts)."""
+        if self.final_history is not None:
+            return self.final_history
         out = await self.tmux("capture-pane", "-p", "-J", "-t", self.pane, "-S", "-", "-E", "-")
         return out.rstrip("\n").split("\n")
 

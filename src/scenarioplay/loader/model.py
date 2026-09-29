@@ -96,6 +96,9 @@ class SshSpec(Strict):
     user: str | None = None
     key: str | None = None
     port: PositiveInt = 22
+    options: list[str] = Field(
+        default_factory=list, description="Extra ssh options, e.g. ['-o', 'ProxyJump=bastion'].")
+    program: str = Field("ssh", description="The ssh client to run.")
 
 
 class TerminalSpec(Strict):
@@ -211,8 +214,14 @@ class ConsoleSpec(Strict):
     answers: list[AnswerRule] = Field(
         default_factory=list, description="Prompts answered automatically in this console; "
                                           "checked before `defaults.answers`.")
-    host: str | None = None
-    size: str | None = None
+    host: str | None = Field(
+        None, description="Run this console on another machine: `host` or `user@host`. The "
+                          "runner opens it with ssh inside the pane (key-based login).")
+    ssh: SshSpec | None = Field(None, description="Options for `host`: user, key, port.")
+    size: Annotated[str, Field(pattern=r"^\d+%?$")] | int | None = Field(
+        None, description="Pane size in split layouts: `30%` or a number of cells.")
+    start: bool = Field(True, description="Open at the start; false = open later with "
+                                          "`open_console`.")
 
     @field_validator("env")
     @classmethod
@@ -250,4 +259,6 @@ class Scenario(Strict):
             if c.name in seen:
                 raise ValueError(f"console name {c.name!r} is used twice")
             seen.add(c.name)
+        if not v[0].start:
+            raise ValueError("the first console must start open (`start: true`)")
         return v
