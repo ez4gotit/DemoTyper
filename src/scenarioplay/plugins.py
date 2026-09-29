@@ -20,13 +20,10 @@ CONDITIONS: dict[str, type[Condition]] = {}
 # Scenario-language keywords from the spec that this version does not implement yet,
 # mapped to the phase that brings them. Used for friendlier validation errors.
 FUTURE_STEPS = {
-    "if": 2, "for_each": 2, "repeat": 2, "while": 2, "until": 2, "retry": 2, "try": 2,
-    "define": 2, "call": 2, "break": 2, "continue": 2, "stop": 2, "include": 2, "set": 2,
-    "capture": 2, "assert": 2, "exec": 2,
     "parallel": 3, "focus": 3, "use": 3, "open_console": 3, "close_console": 3,
     "vm": 4, "record": 4,
 }
-FUTURE_CONDITIONS = {"gone": 2, "idle": 2, "any": 2, "all": 2, "exec": 2, "file": 2, "port": 2}
+FUTURE_CONDITIONS: dict[str, int] = {}
 
 S = TypeVar("S", bound="type[StepModel]")
 C = TypeVar("C", bound="type[Condition]")

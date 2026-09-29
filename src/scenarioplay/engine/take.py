@@ -25,9 +25,10 @@ from ruamel.yaml import YAML
 from ..console import Session
 from ..console.session import SESSION
 from ..console.terminal import TerminalWindow
-from ..errors import EnvironmentProblem, StepAbort
+from ..errors import ControlSignal, EnvironmentProblem, StepAbort, StopTake
 from ..exitcodes import ExitCode
 from ..loader import ParsedScenario
+from ..loader.load import resolve_includes
 from ..recorder import NullRecorder, Recorder, X11Recorder, take_screenshot
 from ..report import Reporter
 from ..secretstore import load_secrets, referenced_secrets
@@ -64,6 +65,7 @@ class Take:
         self.status = "success"
         self.exit = ExitCode.OK
         self.failure: dict[str, Any] | None = None
+        self.initial_vars: dict[str, Any] | None = None
         self._interrupted = False
         self._task: asyncio.Task[Any] | None = None
 
@@ -82,6 +84,13 @@ class Take:
         self.log("info", f"take {self.id}: {self.parsed.file} -> {self.dir}")
         try:
             await self._play()
+        except StopTake as e:
+            if e.status == "success":
+                self.log("info", f"stopped early: {e}")
+            else:
+                self.status, self.exit = "failed", ExitCode.STEP_FAILED
+                self.failure = {"error": self.reporter.mask(str(e))}
+                self.log("error", f"stopped: {e}")
         except StepAbort as e:
             self.status, self.exit = "failed", ExitCode.STEP_FAILED
             await self._collect_evidence(e)
@@ -155,6 +164,8 @@ class Take:
         self.ctx = RunContext(parsed, opts, self.info, self.reporter, self.session,
                               self.recorder, None if self.headless else self.display)
         self.ctx.secrets = secret_values
+        self.ctx.make_scope(parsed.model.vars, opts.cli_vars, opts.vars_file)
+        self.initial_vars = self.ctx.scope.snapshot()
         self.engine = Engine(self.ctx)
 
         setup = parsed.sections.get("setup", [])
@@ -250,6 +261,8 @@ class Take:
                 self.failure = {"step": e.step.path_str(), "error": str(e)}
         except EnvironmentProblem as e:
             self.log("error", f"`finally` could not run: {e}")
+        except ControlSignal as e:
+            self.log("warning", f"`finally` ended early: {e}")
 
     async def _write_transcripts(self) -> None:
         assert self.session
@@ -263,12 +276,17 @@ class Take:
             self.reporter.write_text(f"transcript/{name}.txt", "\n".join(lines) + "\n")
 
     def _write_resolved(self) -> None:
+        """Spec 10.2: the scenario with includes inlined and `vars` holding the values the
+        take started with (file vars, --var, --vars). {{ }} inside steps is filled in as
+        each step runs, so the templates themselves stay."""
         yaml = YAML()
         yaml.default_flow_style = False
+        data = resolve_includes(self.parsed.raw, self.parsed.file)
+        if self.initial_vars is not None:
+            data["vars"] = self.initial_vars
         buf = io.StringIO()
-        buf.write(f"# Resolved scenario for take {self.id} (from {self.parsed.file}).\n"
-                  "# Includes and variables are resolved from phase 2 on.\n")
-        yaml.dump(self.parsed.raw, buf)
+        buf.write(f"# Resolved scenario for take {self.id} (from {self.parsed.file}).\n")
+        yaml.dump(data, buf)
         self.reporter.write_text("scenario.resolved.yaml", buf.getvalue())
 
     def _summary(self, video: str | None) -> dict[str, Any]:

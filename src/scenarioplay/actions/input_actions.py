@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field, PositiveInt
@@ -12,7 +13,8 @@ from ..engine.input import press_enter, press_key, type_step_text, type_text, wa
 from ..errors import StepFailed
 from ..loader.model import SECRET_NAME
 from ..plugins import action
-from .base import InputStep, TypingStep
+from .base import InputStep, TypingStep, text_problem
+from .data_actions import IDENT, CaptureSpec, extract, store
 
 if TYPE_CHECKING:
     from ..console import Console
@@ -42,10 +44,21 @@ class RunStep(TypingStep):
     """Type a command, press Enter and wait for the prompt (or for `expect` / `wait_for`)."""
 
     KEYWORD = "run"
+    NO_RENDER = frozenset({"capture"})
     run: str
     check_exit: bool = False
+    capture: str | CaptureSpec | None = Field(
+        None, description="Store the command's output in a variable: a name, or "
+                          "{name, regex, group, lines}. Needs the prompt to come back.")
 
     def check(self, checker: Checker) -> None:
+        if self.capture is not None and self.post_wait is not None and \
+                not isinstance(self.post_wait, PromptCondition):
+            checker.error(self, "`capture` needs the command to finish, so it cannot be "
+                                "combined with a wait for something other than the prompt",
+                          "capture")
+        if isinstance(self.capture, str) and not re.fullmatch(IDENT, self.capture):
+            checker.error(self, f"{self.capture!r} is not a valid variable name", "capture")
         super().check(checker)
         self.check_text(checker, self.run, newlines_ok=False)
         if self.check_exit and self.post_wait is not None and \
@@ -59,13 +72,21 @@ class RunStep(TypingStep):
             checker.error(self, "`check_exit` needs a bash or zsh console", "check_exit")
 
     async def execute(self, ctx: RunContext) -> None:
+        problem = text_problem(self.run, newlines_ok=False)
+        if problem:  # templates can bring in characters the loader never saw
+            raise StepFailed(f"after filling in variables, {problem}")
         console = ctx.console_for(self)
         verified = await type_step_text(ctx, console, self, self.run, enter=True)
         cond = self.post_wait or PromptCondition()
         await ctx.wait(cond, self, console)
         if isinstance(cond, PromptCondition):
+            ctx.last.output = await console.command_output()
             await _after_prompt(ctx, console, command=self.run if verified else None,
                                 check_exit=self.check_exit)
+            if self.capture is not None:
+                spec = CaptureSpec(name=self.capture) if isinstance(self.capture, str) \
+                    else self.capture
+                store(ctx, spec.name, extract(ctx.last.output, spec))
         await ctx.sleep(ctx.defaults.after_command_pause)
 
 

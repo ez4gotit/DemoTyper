@@ -14,14 +14,17 @@ from .loader import ParsedScenario
 
 
 def referenced_secrets(parsed: ParsedScenario) -> set[str]:
-    """Every secret name the scenario can use: `secret` steps and answer rules."""
-    names: set[str] = set()
+    """Every secret name the scenario can use: `secret` steps, answer rules and
+    {{ secret.NAME }} in templates and expressions."""
+    from .loader.steps import walk
+
+    names: set[str] = set(parsed.template_secrets)
     model = parsed.model
     for rule in [*model.defaults.answers, *(r for c in model.consoles for r in c.answers)]:
         if rule.secret:
             names.add(rule.secret)
     for steps in parsed.sections.values():
-        for step in steps:
+        for step in walk(steps):
             if step.KEYWORD == "secret":
                 names.add(step.secret)
     return names

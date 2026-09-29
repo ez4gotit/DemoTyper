@@ -332,13 +332,34 @@ All proposals below were accepted as written and are what the code implements.
 
 Implemented: every work package in phase 1 (1.1–1.8), plus the verifier and typo gate brought forward from 3.4.
 
-- **Tests:** 83 in total, including 14 for secrets and answers. All 83 pass in WSL Ubuntu 24.04 (tmux 3.4, bash, zsh, xterm) under Xvfb. CI runs the same setup.
+- **Tests at the end of phase 1:** 83 in total, including 14 for secrets and answers. All 83 pass in WSL Ubuntu 24.04 (tmux 3.4, bash, zsh, xterm) under Xvfb. CI runs the same setup.
 - **Recorded take, verified on video:** `examples/hello-shell.yaml` recorded under Xvfb at 1920×1080. The frames show the typed commands, colored prompts, symbols and Cyrillic.
   - *Timing:* a step's recorded video time matches the first changed frame to within 33 ms (one frame; the spec allows 0.5 s). The first chapter falls at 2.017 s for a 2 s lead-in.
   - *Window size:* under bare Xvfb the xterm window isn't full screen, because `-fullscreen` needs a window manager. The take log now records the window size in cells.
 - **WSLg:** its `:0` is XWayland, whose root window x11grab captures as black. `doctor` and the take log warn about this, and the recorded-take test checks the last frame for terminal text.
 - **Timing fix:** ffmpeg's progress reports lag capture by about 1.6 s (x264 buffering). The runtime estimate of the first frame now uses the first progress report, which lands within 0.05 s of the true time. The exact time is still read from the file at the end.
-- **Not yet run:** a recorded take on a real X server (Xvfb or an Xorg desktop), and the nginx acceptance demo (`examples/nginx-install.yaml`) on Ubuntu with passwordless sudo.
+- **Not yet run:** the nginx acceptance demo (`examples/nginx-install.yaml`) on an Ubuntu desktop with real sudo.
+
+---
+
+## 6.5 Phase 2 status
+
+Implemented: WP 2.1–2.7. That covers the expression language and templates (their own parser, no Python eval), variables with `--var`/`--vars`, and the built-ins. It also covers the blocks (`if/elif/else`, `for_each`, `repeat`, `while`, `until`, `retry`, `try/catch/finally`, `define/call`, `break/continue/stop`, `include`), `when`, the `on_fail` policies, and `set/capture/assert/exec`. The rest is `last.*`, the new conditions (`gone`, `idle`, `exec`, `file`, `port`, `any/all`), `on_timeout`, and the static checks.
+
+- **Acceptance:** `examples/loops-and-conditions.yaml` runs with its own `vars` (dev: the `else` branch) and with `--vars examples/vars/prod.yaml` (prod: the `then` branch, 4 services, 3 replicas). No output file contains the deploy token (`tests/integration/test_acceptance_phase2.py`).
+- **Tests:** 141 in total, all passing in WSL under Xvfb.
+
+Decisions made while building phase 2:
+
+1. **Conditions are expressions; everything else is text.** `when`, `if`, `while`, `until` and `assert` take bare expressions (`mode == 'prod'`). Writing `{{ }}` there is a validation error with a hint. Text anywhere else is a template.
+2. **Types of rendered values.** A string that is exactly `{{ expr }}` keeps the value's type (lists, numbers). Inside longer text: `true`/`false`, null as empty, lists space-joined.
+3. **Priority of variable sources follows spec 5.1 literally:** file `vars` < `--var` < `--vars` file < run-time values. `set` updates the innermost loop or call variable of that name, otherwise the global run-time layer, so values set inside a loop remain after it.
+4. **Undefined variables.** Names neither declared in `vars` nor assigned by `set`/`capture` are a warning in a plain `validate`, and an error in `run` or in `validate --var ...`.
+5. **`gone` reads the output since the last input**, like `text` and `regex`. Otherwise the typed command line, which often contains the watched text, would keep it "visible" forever. `scope: screen` gives the whole screen.
+6. **`capture` from `output`, and `last.output`**, cover the text from the Enter up to the returned prompt, without the prompt line.
+7. **`on_timeout: retry`** waits once more with the same timeout. For re-running the whole step, use `on_fail: {retry: N}`.
+8. **Secrets in templates** are allowed where nothing is typed or shown (`exec`, `set`, `assert`, conditions). They are rejected in `run`/`type` text, which would appear on screen and in shell history, and in captions, chapters and logs. Referenced secrets are loaded before the take starts.
+9. **`include`** accepts a file holding a list of steps, or a mapping with only `steps:`. Paths are relative to the including file, cycles are detected, and errors report the included file's own line numbers. `scenario.resolved.yaml` inlines includes and records the starting variable values.
 
 ---
 

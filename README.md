@@ -6,7 +6,10 @@ the whole screen to video with chapters, subtitles and a log.
 
 - Specification: *Technical Specification: Scenario Typing Runner (ScenarioPlay)*
 - Plan: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)
-- Status: **phase 1** (core, local target, one console, X11 recording)
+- Status: **phases 1 and 2**: core, local target, one console, X11 recording; variables,
+  conditions, loops, retries, try/catch, define/call, include, set/capture/assert/exec,
+  secrets and automatic answers
+- Docs: [quick start](docs/quickstart.md), [variables, conditions and blocks](docs/language.md)
 
 ## Install
 

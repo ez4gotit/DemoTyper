@@ -1,7 +1,8 @@
-# Quick start (phase 1)
+# Quick start
 
-This page takes you from a lab task to a recorded video. The full syntax wiki arrives in
-phase 4; this page covers what phase 1 supports.
+This page takes you from a lab task to a recorded video. Variables, conditions, loops and
+the other blocks are on [language.md](language.md). The full syntax wiki arrives in
+phase 4.
 
 ## 1. Check the machine
 

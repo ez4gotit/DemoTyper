@@ -1,0 +1,4 @@
+# Variables for a production-style take of loops-and-conditions.yaml.
+env_name: prod
+services: [web, api, worker, scheduler]
+replicas: 3

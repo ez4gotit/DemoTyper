@@ -127,14 +127,12 @@ def test_two_actions_in_one_step(load):
 def test_future_keywords_explain_phase(load):
     parsed, problems = load("""
         steps:
-          - for_each: [a, b]
-            steps: []
-          - run: ls
-            wait_for: {idle: 2}
+          - parallel: []
+          - vm: {revert: clean}
     """)
     assert parsed is None
     messages = " ".join(p.message for p in problems)
-    assert "phase 2" in messages and "for_each" in messages and "idle" in messages
+    assert "phase 3" in messages and "parallel" in messages and "phase 4" in messages
 
 
 def test_expect_string_is_regex(load):
@@ -183,13 +181,12 @@ def test_phase1_limits(load):
     assert "phase 3" in text
 
 
-def test_templates_warn_but_validate(load):
+def test_declared_variables_validate_cleanly(load):
     parsed, problems = load("""
         vars: {site: x}
         steps: [{run: "curl {{ site }}"}]
     """)
-    assert parsed is not None
-    assert [p.severity for p in problems] == ["warning"]
+    assert parsed is not None and problems == []
 
 
 def test_check_exit_rejected_on_sh_console(load):

@@ -72,6 +72,106 @@
   "title": "ScenarioPlay scenario",
   "type": "object",
   "$defs": {
+    "AllCondition": {
+      "additionalProperties": false,
+      "description": "Holds when every condition holds in the same poll.",
+      "properties": {
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "enum": [
+                "since_last_input",
+                "screen"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scope"
+        },
+        "on_timeout": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue",
+                "retry"
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "as": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As"
+        },
+        "all": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Condition"
+          }
+        }
+      },
+      "required": [
+        "all"
+      ],
+      "title": "AllCondition",
+      "type": "object"
+    },
     "AnswerRule": {
       "additionalProperties": false,
       "description": "Answer a prompt automatically whenever it appears while a step waits.\n\n`when` is a regex matched against the text before the cursor, where a program that\nasks something leaves it. The answer is typed like any other input, then Enter.",
@@ -118,6 +218,299 @@
         "when"
       ],
       "title": "AnswerRule",
+      "type": "object"
+    },
+    "AnyCondition": {
+      "additionalProperties": false,
+      "description": "Holds as soon as one of the conditions holds. Each may name a `console`.",
+      "properties": {
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "enum": [
+                "since_last_input",
+                "screen"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scope"
+        },
+        "on_timeout": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue",
+                "retry"
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "as": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As"
+        },
+        "any": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Condition"
+          }
+        }
+      },
+      "required": [
+        "any"
+      ],
+      "title": "AnyCondition",
+      "type": "object"
+    },
+    "AssertStep": {
+      "additionalProperties": false,
+      "description": "Fail if the condition is false: an expression, or a screen/system condition.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "assert": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message"
+        }
+      },
+      "required": [
+        "assert"
+      ],
+      "title": "AssertStep",
+      "type": "object"
+    },
+    "BreakStep": {
+      "additionalProperties": false,
+      "description": "Leave the innermost loop (`break: true`, usually with `when`).",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "break": {
+          "const": true,
+          "title": "Break",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "break"
+      ],
+      "title": "BreakStep",
       "type": "object"
     },
     "BurstSpec": {
@@ -176,6 +569,97 @@
       "title": "BurstSpec",
       "type": "object"
     },
+    "CallBlock": {
+      "additionalProperties": false,
+      "description": "Run a `define`d block with parameter values from `with`.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "call": {
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Call",
+          "type": "string"
+        },
+        "with": {
+          "additionalProperties": true,
+          "title": "With",
+          "type": "object"
+        }
+      },
+      "required": [
+        "call"
+      ],
+      "title": "CallBlock",
+      "type": "object"
+    },
     "CaptionStep": {
       "additionalProperties": false,
       "description": "Show a subtitle line for some seconds without starting a chapter.",
@@ -211,19 +695,32 @@
               "enum": [
                 "fail",
                 "continue"
-              ],
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
               "type": "string"
             },
             {
-              "type": "null"
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
             }
-          ],
-          "default": null,
-          "title": "On Fail"
-        },
-        "when": {
-          "default": null,
-          "title": "When"
+          ]
         },
         "label": {
           "anyOf": [
@@ -253,6 +750,198 @@
         "caption"
       ],
       "title": "CaptionStep",
+      "type": "object"
+    },
+    "CaptureSpec": {
+      "additionalProperties": false,
+      "description": "What to keep from some output: a regex (its first group, or the group named in\n`group`) and/or only the last `lines` lines. Without either, the whole text.",
+      "properties": {
+        "name": {
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "regex": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Regex"
+        },
+        "group": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Group"
+        },
+        "lines": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lines"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "CaptureSpec",
+      "type": "object"
+    },
+    "CaptureStep": {
+      "additionalProperties": false,
+      "description": "Store output in a variable. `from`: `output` (since the last input, default),\n`screen` (visible screen) or `last_output` (output of the last `run`).",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "capture": {
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Capture",
+          "type": "string"
+        },
+        "regex": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Regex"
+        },
+        "group": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Group"
+        },
+        "lines": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lines"
+        },
+        "from": {
+          "default": "output",
+          "enum": [
+            "output",
+            "screen",
+            "last_output"
+          ],
+          "title": "From",
+          "type": "string"
+        }
+      },
+      "required": [
+        "capture"
+      ],
+      "title": "CaptureStep",
       "type": "object"
     },
     "ChapterStep": {
@@ -290,19 +979,32 @@
               "enum": [
                 "fail",
                 "continue"
-              ],
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
               "type": "string"
             },
             {
-              "type": "null"
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
             }
-          ],
-          "default": null,
-          "title": "On Fail"
-        },
-        "when": {
-          "default": null,
-          "title": "When"
+          ]
         },
         "label": {
           "anyOf": [
@@ -375,19 +1077,32 @@
               "enum": [
                 "fail",
                 "continue"
-              ],
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
               "type": "string"
             },
             {
-              "type": "null"
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
             }
-          ],
-          "default": null,
-          "title": "On Fail"
-        },
-        "when": {
-          "default": null,
-          "title": "When"
+          ]
         },
         "label": {
           "anyOf": [
@@ -466,6 +1181,27 @@
       "anyOf": [
         {
           "type": "string"
+        },
+        {
+          "$ref": "#/$defs/AllCondition"
+        },
+        {
+          "$ref": "#/$defs/AnyCondition"
+        },
+        {
+          "$ref": "#/$defs/ExecCondition"
+        },
+        {
+          "$ref": "#/$defs/FileCondition"
+        },
+        {
+          "$ref": "#/$defs/GoneCondition"
+        },
+        {
+          "$ref": "#/$defs/IdleCondition"
+        },
+        {
+          "$ref": "#/$defs/PortCondition"
         },
         {
           "$ref": "#/$defs/PromptCondition"
@@ -582,6 +1318,92 @@
       "title": "ConsoleSpec",
       "type": "object"
     },
+    "ContinueStep": {
+      "additionalProperties": false,
+      "description": "Skip to the next pass of the innermost loop (`continue: true`).",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "continue": {
+          "const": true,
+          "title": "Continue",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "continue"
+      ],
+      "title": "ContinueStep",
+      "type": "object"
+    },
     "Defaults": {
       "additionalProperties": false,
       "properties": {
@@ -620,13 +1442,20 @@
           "type": "number"
         },
         "on_fail": {
-          "default": "fail",
-          "enum": [
-            "fail",
-            "continue"
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            }
           ],
-          "title": "On Fail",
-          "type": "string"
+          "default": "fail",
+          "title": "On Fail"
         },
         "keep_video_on_fail": {
           "default": true,
@@ -649,6 +1478,106 @@
         }
       },
       "title": "Defaults",
+      "type": "object"
+    },
+    "DefineBlock": {
+      "additionalProperties": false,
+      "description": "Declare a reusable block with parameters; `call` runs it. Defining runs nothing.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "define": {
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Define",
+          "type": "string"
+        },
+        "params": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Params",
+          "type": "array"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          }
+        }
+      },
+      "required": [
+        "define",
+        "steps"
+      ],
+      "title": "DefineBlock",
       "type": "object"
     },
     "EnterStep": {
@@ -686,19 +1615,32 @@
               "enum": [
                 "fail",
                 "continue"
-              ],
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
               "type": "string"
             },
             {
-              "type": "null"
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
             }
-          ],
-          "default": null,
-          "title": "On Fail"
-        },
-        "when": {
-          "default": null,
-          "title": "When"
+          ]
         },
         "label": {
           "anyOf": [
@@ -738,6 +1680,846 @@
         "enter"
       ]
     },
+    "ExecCondition": {
+      "additionalProperties": false,
+      "description": "An out-of-view command succeeds (exit code 0). Nothing is typed on screen.",
+      "properties": {
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "enum": [
+                "since_last_input",
+                "screen"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scope"
+        },
+        "on_timeout": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue",
+                "retry"
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "as": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As"
+        },
+        "exec": {
+          "title": "Exec",
+          "type": "string"
+        }
+      },
+      "required": [
+        "exec"
+      ],
+      "title": "ExecCondition",
+      "type": "object"
+    },
+    "ExecStep": {
+      "additionalProperties": false,
+      "description": "Run a command out of view (not typed on screen), e.g. for checks. Sets\n{{ last.exit_code }} and {{ last.output }}; `capture: name` stores its output.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "exec": {
+          "title": "Exec",
+          "type": "string"
+        },
+        "capture": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capture"
+        },
+        "check_exit": {
+          "default": false,
+          "title": "Check Exit",
+          "type": "boolean"
+        },
+        "cwd": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cwd"
+        }
+      },
+      "required": [
+        "exec"
+      ],
+      "title": "ExecStep",
+      "type": "object"
+    },
+    "FileCondition": {
+      "additionalProperties": false,
+      "description": "A file or directory exists on the target (checked out of view).",
+      "properties": {
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "enum": [
+                "since_last_input",
+                "screen"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scope"
+        },
+        "on_timeout": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue",
+                "retry"
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "as": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As"
+        },
+        "file": {
+          "title": "File",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file"
+      ],
+      "title": "FileCondition",
+      "type": "object"
+    },
+    "ForEachBlock": {
+      "additionalProperties": false,
+      "description": "Repeat the steps for each item of a list (`for_each: [a, b]` or `\"{{ var }}\"`).",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "for_each": {
+          "anyOf": [
+            {
+              "items": {},
+              "type": "array"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "For Each"
+        },
+        "as": {
+          "default": "item",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "As",
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          }
+        }
+      },
+      "required": [
+        "for_each",
+        "steps"
+      ],
+      "title": "ForEachBlock",
+      "type": "object"
+    },
+    "GoneCondition": {
+      "additionalProperties": false,
+      "description": "This text is no longer visible (a progress bar or spinner ended). Like `text`, it\nlooks at the output since the last input, so the typed command itself does not count;\n`scope: screen` looks at the whole screen.",
+      "properties": {
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "enum": [
+                "since_last_input",
+                "screen"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scope"
+        },
+        "on_timeout": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue",
+                "retry"
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "as": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As"
+        },
+        "gone": {
+          "title": "Gone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "gone"
+      ],
+      "title": "GoneCondition",
+      "type": "object"
+    },
+    "IdleCondition": {
+      "additionalProperties": false,
+      "description": "The screen has not changed for this many seconds (for programs without a prompt).",
+      "properties": {
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "enum": [
+                "since_last_input",
+                "screen"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scope"
+        },
+        "on_timeout": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue",
+                "retry"
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "as": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As"
+        },
+        "idle": {
+          "exclusiveMinimum": 0,
+          "title": "Idle",
+          "type": "number"
+        }
+      },
+      "required": [
+        "idle"
+      ],
+      "title": "IdleCondition",
+      "type": "object"
+    },
+    "IfBlock": {
+      "additionalProperties": false,
+      "description": "Run `then` if the condition holds; otherwise the first `elif` that holds, or\n`else`. The condition is an expression or a screen/system condition checked once.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "if": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "then": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          }
+        },
+        "elif": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "if",
+              "then"
+            ],
+            "properties": {
+              "if": {
+                "description": "An expression such as `x == 1`, or a condition checked once.",
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "$ref": "#/$defs/Condition"
+                  }
+                ]
+              },
+              "then": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/Step"
+                }
+              }
+            }
+          }
+        },
+        "else": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          }
+        }
+      },
+      "required": [
+        "if",
+        "then"
+      ],
+      "title": "IfBlock",
+      "type": "object"
+    },
+    "IncludeStep": {
+      "additionalProperties": false,
+      "description": "Insert the steps of another file here (a list of steps, or a file with only\n`steps:`). The path is relative to the including file. Resolved when loading.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "include": {
+          "title": "Include",
+          "type": "string"
+        }
+      },
+      "required": [
+        "include"
+      ],
+      "title": "IncludeStep",
+      "type": "object"
+    },
     "KeyStep": {
       "additionalProperties": false,
       "description": "Send a key or combination: C-c, C-d, C-l, Tab, Up, Down, Escape, F1-F12, M-x...",
@@ -773,19 +2555,32 @@
               "enum": [
                 "fail",
                 "continue"
-              ],
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
               "type": "string"
             },
             {
-              "type": "null"
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
             }
-          ],
-          "default": null,
-          "title": "On Fail"
-        },
-        "when": {
-          "default": null,
-          "title": "When"
+          ]
         },
         "label": {
           "anyOf": [
@@ -857,19 +2652,32 @@
               "enum": [
                 "fail",
                 "continue"
-              ],
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
               "type": "string"
             },
             {
-              "type": "null"
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
             }
-          ],
-          "default": null,
-          "title": "On Fail"
-        },
-        "when": {
-          "default": null,
-          "title": "When"
+          ]
         },
         "label": {
           "anyOf": [
@@ -948,6 +2756,28 @@
       "title": "Meta",
       "type": "object"
     },
+    "OnFailRetry": {
+      "additionalProperties": false,
+      "description": "`on_fail: {retry: 3, delay: 2}`: run the failed step again, up to `retry` times.",
+      "properties": {
+        "retry": {
+          "exclusiveMinimum": 0,
+          "title": "Retry",
+          "type": "integer"
+        },
+        "delay": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Delay",
+          "type": "number"
+        }
+      },
+      "required": [
+        "retry"
+      ],
+      "title": "OnFailRetry",
+      "type": "object"
+    },
     "PauseStep": {
       "additionalProperties": false,
       "description": "Wait a fixed number of seconds so the viewer can read (scaled by --speed).",
@@ -983,19 +2813,32 @@
               "enum": [
                 "fail",
                 "continue"
-              ],
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
               "type": "string"
             },
             {
-              "type": "null"
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
             }
-          ],
-          "default": null,
-          "title": "On Fail"
-        },
-        "when": {
-          "default": null,
-          "title": "When"
+          ]
         },
         "label": {
           "anyOf": [
@@ -1019,6 +2862,111 @@
         "pause"
       ],
       "title": "PauseStep",
+      "type": "object"
+    },
+    "PortCondition": {
+      "additionalProperties": false,
+      "description": "A TCP port accepts connections: `port: 80` (on the target) or `port: \"db:5432\"`.",
+      "properties": {
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "enum": [
+                "since_last_input",
+                "screen"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scope"
+        },
+        "on_timeout": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue",
+                "retry"
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "as": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As"
+        },
+        "port": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Port"
+        }
+      },
+      "required": [
+        "port"
+      ],
+      "title": "PortCondition",
       "type": "object"
     },
     "PromptCondition": {
@@ -1072,16 +3020,17 @@
             {
               "enum": [
                 "fail",
-                "continue"
-              ],
-              "type": "string"
+                "continue",
+                "retry"
+              ]
             },
             {
-              "type": "null"
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
             }
-          ],
-          "default": null,
-          "title": "On Timeout"
+          ]
         },
         "console": {
           "anyOf": [
@@ -1240,16 +3189,17 @@
             {
               "enum": [
                 "fail",
-                "continue"
-              ],
-              "type": "string"
+                "continue",
+                "retry"
+              ]
             },
             {
-              "type": "null"
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
             }
-          ],
-          "default": null,
-          "title": "On Timeout"
+          ]
         },
         "console": {
           "anyOf": [
@@ -1284,6 +3234,214 @@
         "regex"
       ],
       "title": "RegexCondition",
+      "type": "object"
+    },
+    "RepeatBlock": {
+      "additionalProperties": false,
+      "description": "Repeat the steps a fixed number of times.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "repeat": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Repeat"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          }
+        }
+      },
+      "required": [
+        "repeat",
+        "steps"
+      ],
+      "title": "RepeatBlock",
+      "type": "object"
+    },
+    "RetryBlock": {
+      "additionalProperties": false,
+      "description": "Run the steps; if one fails, wait `delay` seconds and run them all again, up to\n`retry` attempts in total.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "retry": {
+          "exclusiveMinimum": 0,
+          "title": "Retry",
+          "type": "integer"
+        },
+        "delay": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Delay",
+          "type": "number"
+        },
+        "on_exhausted": {
+          "default": "fail",
+          "enum": [
+            "fail",
+            "continue"
+          ],
+          "title": "On Exhausted",
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          }
+        }
+      },
+      "required": [
+        "retry",
+        "steps"
+      ],
+      "title": "RetryBlock",
       "type": "object"
     },
     "RunStep": {
@@ -1321,19 +3479,32 @@
               "enum": [
                 "fail",
                 "continue"
-              ],
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
               "type": "string"
             },
             {
-              "type": "null"
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
             }
-          ],
-          "default": null,
-          "title": "On Fail"
-        },
-        "when": {
-          "default": null,
-          "title": "When"
+          ]
         },
         "label": {
           "anyOf": [
@@ -1391,6 +3562,22 @@
           "default": false,
           "title": "Check Exit",
           "type": "boolean"
+        },
+        "capture": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/CaptureSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Store the command's output in a variable: a name, or {name, regex, group, lines}. Needs the prompt to come back.",
+          "title": "Capture"
         }
       },
       "required": [
@@ -1434,19 +3621,32 @@
               "enum": [
                 "fail",
                 "continue"
-              ],
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
               "type": "string"
             },
             {
-              "type": "null"
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
             }
-          ],
-          "default": null,
-          "title": "On Fail"
-        },
-        "when": {
-          "default": null,
-          "title": "When"
+          ]
         },
         "label": {
           "anyOf": [
@@ -1515,19 +3715,32 @@
               "enum": [
                 "fail",
                 "continue"
-              ],
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
               "type": "string"
             },
             {
-              "type": "null"
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
             }
-          ],
-          "default": null,
-          "title": "On Fail"
-        },
-        "when": {
-          "default": null,
-          "title": "When"
+          ]
         },
         "label": {
           "anyOf": [
@@ -1599,6 +3812,96 @@
       "title": "SecretStep",
       "type": "object"
     },
+    "SetStep": {
+      "additionalProperties": false,
+      "description": "Set or change a variable: `set: name` with `value:` (templates keep their type,\nso `value: \"{{ packages }}\"` stays a list).",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "set": {
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Set",
+          "type": "string"
+        },
+        "value": {
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "set"
+      ],
+      "title": "SetStep",
+      "type": "object"
+    },
     "SshSpec": {
       "additionalProperties": false,
       "properties": {
@@ -1645,7 +3948,19 @@
       "description": "One step: exactly one action keyword plus its options.",
       "anyOf": [
         {
+          "$ref": "#/$defs/AssertStep"
+        },
+        {
+          "$ref": "#/$defs/BreakStep"
+        },
+        {
+          "$ref": "#/$defs/CallBlock"
+        },
+        {
           "$ref": "#/$defs/CaptionStep"
+        },
+        {
+          "$ref": "#/$defs/CaptureStep"
         },
         {
           "$ref": "#/$defs/ChapterStep"
@@ -1654,7 +3969,25 @@
           "$ref": "#/$defs/ClearStep"
         },
         {
+          "$ref": "#/$defs/ContinueStep"
+        },
+        {
+          "$ref": "#/$defs/DefineBlock"
+        },
+        {
           "$ref": "#/$defs/EnterStep"
+        },
+        {
+          "$ref": "#/$defs/ExecStep"
+        },
+        {
+          "$ref": "#/$defs/ForEachBlock"
+        },
+        {
+          "$ref": "#/$defs/IfBlock"
+        },
+        {
+          "$ref": "#/$defs/IncludeStep"
         },
         {
           "$ref": "#/$defs/KeyStep"
@@ -1666,6 +3999,12 @@
           "$ref": "#/$defs/PauseStep"
         },
         {
+          "$ref": "#/$defs/RepeatBlock"
+        },
+        {
+          "$ref": "#/$defs/RetryBlock"
+        },
+        {
           "$ref": "#/$defs/RunStep"
         },
         {
@@ -1675,12 +4014,128 @@
           "$ref": "#/$defs/SecretStep"
         },
         {
+          "$ref": "#/$defs/SetStep"
+        },
+        {
+          "$ref": "#/$defs/StopStep"
+        },
+        {
+          "$ref": "#/$defs/TryBlock"
+        },
+        {
           "$ref": "#/$defs/TypeStep"
         },
         {
+          "$ref": "#/$defs/UntilBlock"
+        },
+        {
           "$ref": "#/$defs/WaitForStep"
+        },
+        {
+          "$ref": "#/$defs/WhileBlock"
         }
       ]
+    },
+    "StopStep": {
+      "additionalProperties": false,
+      "description": "End the take early: `stop: success` or `stop: failure`, with an optional message.\n`finally` still runs.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "stop": {
+          "enum": [
+            "success",
+            "failure"
+          ],
+          "title": "Stop",
+          "type": "string"
+        },
+        "message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message"
+        }
+      },
+      "required": [
+        "stop"
+      ],
+      "title": "StopStep",
+      "type": "object"
     },
     "TargetSpec": {
       "additionalProperties": false,
@@ -1843,16 +4298,17 @@
             {
               "enum": [
                 "fail",
-                "continue"
-              ],
-              "type": "string"
+                "continue",
+                "retry"
+              ]
             },
             {
-              "type": "null"
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
             }
-          ],
-          "default": null,
-          "title": "On Timeout"
+          ]
         },
         "console": {
           "anyOf": [
@@ -1887,6 +4343,105 @@
         "text"
       ],
       "title": "TextCondition",
+      "type": "object"
+    },
+    "TryBlock": {
+      "additionalProperties": false,
+      "description": "Run `try`; if a step fails, run `catch` (with {{ error.message }} and\n{{ error.step }}) instead of failing. `finally` always runs.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "try": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          }
+        },
+        "catch": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          }
+        },
+        "finally": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          }
+        }
+      },
+      "required": [
+        "try"
+      ],
+      "title": "TryBlock",
       "type": "object"
     },
     "TypeStep": {
@@ -1924,19 +4479,32 @@
               "enum": [
                 "fail",
                 "continue"
-              ],
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
               "type": "string"
             },
             {
-              "type": "null"
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
             }
-          ],
-          "default": null,
-          "title": "On Fail"
-        },
-        "when": {
-          "default": null,
-          "title": "When"
+          ]
         },
         "label": {
           "anyOf": [
@@ -2355,6 +4923,129 @@
       "title": "TyposSpec",
       "type": "object"
     },
+    "UntilBlock": {
+      "additionalProperties": false,
+      "description": "Repeat until the condition holds; it is checked after each pass, so the steps run at\nleast once (the condition usually looks at their output).",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "max_iterations": {
+          "exclusiveMinimum": 0,
+          "title": "Max Iterations",
+          "type": "integer"
+        },
+        "delay": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Delay",
+          "type": "number"
+        },
+        "on_exhausted": {
+          "default": "fail",
+          "enum": [
+            "fail",
+            "continue"
+          ],
+          "title": "On Exhausted",
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          }
+        },
+        "until": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        }
+      },
+      "required": [
+        "max_iterations",
+        "steps",
+        "until"
+      ],
+      "title": "UntilBlock",
+      "type": "object"
+    },
     "WaitForStep": {
       "additionalProperties": false,
       "description": "Block until a screen condition holds (spec section 7).",
@@ -2390,19 +5081,32 @@
               "enum": [
                 "fail",
                 "continue"
-              ],
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
               "type": "string"
             },
             {
-              "type": "null"
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
             }
-          ],
-          "default": null,
-          "title": "On Fail"
-        },
-        "when": {
-          "default": null,
-          "title": "When"
+          ]
         },
         "label": {
           "anyOf": [
@@ -2424,6 +5128,129 @@
         "wait_for"
       ],
       "title": "WaitForStep",
+      "type": "object"
+    },
+    "WhileBlock": {
+      "additionalProperties": false,
+      "description": "Repeat while the condition holds; it is checked before each pass.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ]
+            },
+            {
+              "$ref": "#/$defs/OnFailRetry"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Step"
+              }
+            }
+          ]
+        },
+        "when": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "max_iterations": {
+          "exclusiveMinimum": 0,
+          "title": "Max Iterations",
+          "type": "integer"
+        },
+        "delay": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Delay",
+          "type": "number"
+        },
+        "on_exhausted": {
+          "default": "fail",
+          "enum": [
+            "fail",
+            "continue"
+          ],
+          "title": "On Exhausted",
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          }
+        },
+        "while": {
+          "description": "An expression such as `x == 1`, or a condition checked once.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/Condition"
+            }
+          ]
+        }
+      },
+      "required": [
+        "max_iterations",
+        "steps",
+        "while"
+      ],
+      "title": "WhileBlock",
       "type": "object"
     }
   }

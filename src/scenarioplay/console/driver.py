@@ -101,6 +101,17 @@ class Console:
             lines.pop()
         return lines
 
+    async def command_output(self) -> str:
+        """Output of the last command: from after its Enter up to the returned prompt."""
+        if self.output_start is None:
+            return ""
+        lines = await self.capture(start_abs=self.output_start)
+        while lines and not lines[-1].strip():
+            lines.pop()
+        if lines and self.prompt_matches(lines[-1]):
+            lines.pop()
+        return "\n".join(line.rstrip() for line in lines)
+
     async def history(self) -> list[str]:
         """Everything in the pane, scrollback included (for transcripts)."""
         out = await self.tmux("capture-pane", "-p", "-J", "-t", self.pane, "-S", "-", "-E", "-")

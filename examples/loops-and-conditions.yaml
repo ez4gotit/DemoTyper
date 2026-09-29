@@ -1,0 +1,74 @@
+# Phase 2 acceptance demo: variables, a reusable block, loops, branches, waiting on the
+# system, retries and a secret. Harmless: it only works inside /tmp.
+#
+#   DEPLOY_TOKEN=s3cret scenarioplay run examples/loops-and-conditions.yaml
+#   DEPLOY_TOKEN=s3cret scenarioplay run examples/loops-and-conditions.yaml \
+#       --vars examples/vars/prod.yaml
+version: 1
+meta:
+  title: "Loops and conditions"
+
+vars:
+  env_name: dev
+  services: [web, api, worker]
+  replicas: 1
+  workdir: /tmp/sp-loops
+
+defaults:
+  typing: { profile: normal }
+  after_command_pause: 0.6
+  answers:
+    - when: 'Deploy token: $'
+      secret: DEPLOY_TOKEN
+
+setup:
+  - run: "rm -rf {{ workdir }} && mkdir -p {{ workdir }} && cd {{ workdir }}"
+
+steps:
+  - define: make_service
+    params: [name]
+    steps:
+      - run: "mkdir -p {{ name }} && echo '{{ name }} on {{ env_name }}' > {{ name }}/README"
+
+  - chapter: "Task 1: Create the {{ env_name }} services"
+  - for_each: "{{ services }}"
+    as: svc
+    steps:
+      - call: make_service
+        with: { name: "{{ svc }}" }
+  - run: "ls -d */ | wc -l"
+    capture: count
+  - assert: "count | int == services | length"
+    message: "every service got a folder"
+
+  - chapter: "Task 2: Settings for {{ env_name }}"
+  - if: "env_name == 'prod'"
+    then:
+      - run: "echo 'replicas={{ replicas }}' > settings.conf"
+      - caption: "Production runs {{ replicas }} replicas"
+    else:
+      - run: "echo 'debug=true' > settings.conf"
+  - run: "cat settings.conf"
+
+  - chapter: "Task 3: Wait until the service is ready"
+  - type: "(sleep 2; touch ready.flag) &"
+    enter: true
+  - until: { file: "{{ workdir }}/ready.flag" }
+    max_iterations: 10
+    delay: 0.5
+    steps:
+      - run: "ls ready.flag 2>/dev/null || echo 'not ready yet'"
+
+  - chapter: "Task 4: Deploy"
+  - run: "read -r -s -p 'Deploy token: ' token; echo; [ -n \"$token\" ] && echo deploy accepted"
+    expect: '^deploy accepted$'
+  - try:
+      - run: "test -f {{ workdir }}/web/README"
+        check_exit: true
+    catch:
+      - log: "web was not created: {{ error.message }}"
+    finally:
+      - run: "tree -L 1 2>/dev/null || ls -R | head -n 12"
+
+finally:
+  - run: "cd ~"

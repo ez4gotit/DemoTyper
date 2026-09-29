@@ -4,18 +4,21 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import sys
 from pathlib import Path
+from typing import Any
 
 import click
+from ruamel.yaml import YAML
 
 from . import __version__
 from .exitcodes import ExitCode
 from .loader import load_scenario
 
 
-def _load_or_exit(file: Path, *, quiet_ok: bool = False):
-    parsed, problems = load_scenario(file)
+def _load_or_exit(file: Path, extra_vars: set[str] | None = None):
+    parsed, problems = load_scenario(file, extra_vars)
     for p in problems:
         color = "red" if p.severity == "error" else "yellow"
         click.secho(p.format(), fg=color, err=True)
@@ -26,6 +29,45 @@ def _load_or_exit(file: Path, *, quiet_ok: bool = False):
     return parsed
 
 
+def _parse_vars(pairs: tuple[str, ...], vars_file: Path | None
+                ) -> tuple[dict[str, Any], dict[str, Any]]:
+    """--var name=value (the value is read as YAML: 3 is a number, true a boolean, [a, b] a
+    list) and --vars file.yaml (a mapping)."""
+    yaml = YAML(typ="safe")
+    cli: dict[str, Any] = {}
+    for pair in pairs:
+        name, sep, value = pair.partition("=")
+        if not sep or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+            raise click.BadParameter(f"expected name=value, got {pair!r}", param_hint="--var")
+        try:
+            cli[name] = yaml.load(value) if value.strip() else ""
+        except Exception:
+            cli[name] = value
+    from_file: dict[str, Any] = {}
+    if vars_file is not None:
+        data = yaml.load(vars_file.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise click.BadParameter("the file must be a mapping of name: value",
+                                     param_hint="--vars")
+        from_file = data
+    return cli, from_file
+
+
+var_options = [
+    click.option("--var", "var_pairs", multiple=True, metavar="NAME=VALUE",
+                 help="Set a variable (repeatable). Overrides the scenario's `vars`."),
+    click.option("--vars", "vars_file", type=click.Path(exists=True, dir_okay=False,
+                                                         path_type=Path),
+                 help="YAML file of variables; overrides --var and the scenario's `vars`."),
+]
+
+
+def with_var_options(fn):
+    for option in reversed(var_options):
+        fn = option(fn)
+    return fn
+
+
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.version_option(__version__, prog_name="scenarioplay")
 def main() -> None:
@@ -34,9 +76,15 @@ def main() -> None:
 
 @main.command()
 @click.argument("file", type=click.Path(exists=True, dir_okay=False, path_type=Path))
-def validate(file: Path) -> None:
-    """Check a scenario: syntax, schema, console names, key names, regexes."""
-    parsed = _load_or_exit(file)
+@with_var_options
+def validate(file: Path, var_pairs: tuple[str, ...], vars_file: Path | None) -> None:
+    """Check a scenario: syntax, schema, variables, console names, key names, regexes.
+
+    Without --var/--vars, variables that are neither declared nor set are warnings;
+    with them, errors (as in `run`)."""
+    cli_vars, file_vars = _parse_vars(var_pairs, vars_file)
+    given = set(cli_vars) | set(file_vars) if (var_pairs or vars_file) else None
+    parsed = _load_or_exit(file, given)
     from .secretstore import referenced_secrets
 
     counts = {s: len(v) for s, v in parsed.sections.items() if v}
@@ -69,12 +117,14 @@ def validate(file: Path) -> None:
               help="YAML file of NAME: value secrets (otherwise read from the environment).")
 @click.option("--keep-session", is_flag=True, help="Leave the tmux session running.")
 @click.option("-v", "--verbose", is_flag=True, help="Debug log: every wait and poll.")
+@with_var_options
 def run(file: Path, dry_run: bool, no_record: bool, headless: bool, speed: float,
         out_dir: Path, display: str | None, size: str, typos_rate: float | None,
         no_typos: bool, secrets_file: Path | None, keep_session: bool,
-        verbose: bool) -> None:
+        verbose: bool, var_pairs: tuple[str, ...], vars_file: Path | None) -> None:
     """Play a scenario and record a take."""
-    parsed = _load_or_exit(file)
+    cli_vars, file_vars = _parse_vars(var_pairs, vars_file)
+    parsed = _load_or_exit(file, set(cli_vars) | set(file_vars))
     if dry_run:
         from .engine.plan import format_plan
 
@@ -92,7 +142,8 @@ def run(file: Path, dry_run: bool, no_record: bool, headless: bool, speed: float
     opts = RunOptions(record=not (no_record or headless), speed=speed, out_dir=out_dir,
                       keep_session=keep_session, verbose=verbose, headless=headless,
                       display=display, width=cols, height=rows, typos_rate=typos_rate,
-                      no_typos=no_typos, secrets_file=secrets_file)
+                      no_typos=no_typos, secrets_file=secrets_file, cli_vars=cli_vars,
+                      vars_file=file_vars)
     code = asyncio.run(run_take(parsed, opts))
     sys.exit(code)
 

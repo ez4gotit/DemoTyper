@@ -140,6 +140,13 @@ class TargetSpec(Strict):
         return self
 
 
+class OnFailRetry(Strict):
+    """`on_fail: {retry: 3, delay: 2}`: run the failed step again, up to `retry` times."""
+
+    retry: PositiveInt
+    delay: NonNegativeFloat = 1.0
+
+
 # --- automatic answers ---------------------------------------------------------------
 
 
@@ -184,7 +191,7 @@ class Defaults(Strict):
     timeout: PositiveFloat = 60.0
     interval: PositiveFloat = 0.2
     after_command_pause: NonNegativeFloat = 1.0
-    on_fail: Literal["fail", "continue"] = "fail"
+    on_fail: Literal["fail", "continue"] | OnFailRetry = "fail"
     keep_video_on_fail: bool = True
     clear_after_setup: bool = Field(
         True, description="Clear each console after `setup`, so the video starts clean."

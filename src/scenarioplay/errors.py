@@ -57,6 +57,25 @@ class ConsoleLost(StepFailed):
     pass
 
 
+class ControlSignal(Exception):
+    """break / continue / stop: unwinds the step tree without being a failure."""
+
+
+class BreakLoop(ControlSignal):
+    pass
+
+
+class ContinueLoop(ControlSignal):
+    pass
+
+
+class StopTake(ControlSignal):
+    def __init__(self, status: str, message: str | None):
+        super().__init__(message or f"stopped ({status})")
+        self.status = status
+        self.message = message
+
+
 @dataclass
 class StepAbort(Exception):
     """An unhandled step failure that ends the take."""
