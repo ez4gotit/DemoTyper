@@ -1,0 +1,15 @@
+version: 1
+meta: { title: "Seeded errors" }
+defaults:
+  timeout: -5
+steps:
+  - run: "ls"
+  - pasue: 2
+  - run: "grep foo"
+    expect: "([unclosed"
+  - key: "C-Banana"
+  - run: "echo hi"
+    console: side
+  - type: "a	b"
+  - run: "ls"
+    enter: true

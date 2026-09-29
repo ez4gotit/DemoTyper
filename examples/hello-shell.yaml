@@ -1,0 +1,37 @@
+# A harmless demo that runs anywhere: no sudo, no network. Good for a first take.
+version: 1
+meta:
+  title: "Hello shell"
+
+defaults:
+  typing: { profile: normal }
+  after_command_pause: 0.8
+
+setup:
+  - run: "mkdir -p /tmp/sp-demo && cd /tmp/sp-demo && rm -f notes.txt"
+
+steps:
+  - chapter: "Task 1: Look around"
+  - run: "pwd"
+  - run: "echo 'Symbols: | ~ $HOME { } \\ ; & < > \" and Юникод'"
+    expect: 'Юникод'
+
+  - chapter: "Task 2: Write a file"
+  - run: "printf 'line one\\nline two\\n' > notes.txt"
+  - run: "wc -l notes.txt"
+    expect: '^2 notes\.txt$'
+  - run: "cat notes.txt"
+
+  - chapter: "Task 3: A long command and a key"
+  - type: "sleep 30"
+    enter: true
+  - pause: 1.5
+  - key: C-c
+    wait_for: { prompt: true }
+  - run: "for i in 1 2 3; do echo \"step $i\"; sleep 0.3; done"
+    expect: 'step 3'
+  - caption: "That's all"
+  - pause: 1
+
+finally:
+  - run: "cd ~"

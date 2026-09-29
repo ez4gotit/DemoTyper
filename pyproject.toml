@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling>=1.18"]
+build-backend = "hatchling.build"
+
+[project]
+name = "scenarioplay"
+version = "0.1.0"
+description = "Plays human-written typing scenarios into real terminals and records the screen"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+dependencies = [
+    "click>=8.1",
+    "pydantic>=2.5",
+    "ruamel.yaml>=0.18",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "hypothesis>=6.100",
+    "jsonschema>=4.20",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+scenarioplay = "scenarioplay.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/scenarioplay"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+markers = [
+    "integration: needs tmux and bash on Linux",
+    "recording: needs an X display and ffmpeg",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "ASYNC", "RUF"]
+ignore = [
+    "RUF001",  # ambiguous Unicode in strings: Cyrillic test text is intentional
+    "ASYNC109",  # timeout parameters on async helpers are deliberate
+    "ASYNC230",  # small synchronous file I/O in async code is fine here
+    "ASYNC240",
+    "RUF005",  # tuple concatenation reads fine for YAML paths
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ASYNC221"]  # tests call ffprobe/ffmpeg synchronously

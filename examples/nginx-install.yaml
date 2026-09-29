@@ -1,0 +1,59 @@
+# Phase 1 acceptance demo: a 10-command install scenario, one console, local target.
+# Needs a Debian/Ubuntu desktop. The sudo password is answered automatically:
+#   SUDO_PASS='...' scenarioplay run examples/nginx-install.yaml
+# or put SUDO_PASS in a file (chmod 600) and pass --secrets that-file.
+version: 1
+meta:
+  title: "Lab 3 - Nginx setup"
+  source_pdf: "lab3.pdf"
+  author: "ScenarioPlay examples"
+
+target:
+  kind: local
+  terminal: { font: "DejaVu Sans Mono", font_size: 18 }
+  recorder: { fps: 30, lead_in: 2, tail: 3 }
+
+defaults:
+  typing: { profile: normal }
+  timeout: 60
+  after_command_pause: 1.2
+  answers:
+    # Whenever sudo asks, type the password (only ever into the hidden password prompt).
+    - when: '\[sudo\] password for'
+      secret: SUDO_PASS
+
+setup:
+  # Not recorded: start from a machine without nginx. `sudo -k` forgets any cached
+  # password, so the recorded part shows the password prompt like a real session.
+  - run: "sudo systemctl stop nginx 2>/dev/null; sudo apt-get purge -y -qq nginx nginx-common >/dev/null 2>&1; sudo -k"
+    timeout: 300
+
+steps:
+  - chapter: "Task 1: Update the package index"
+    caption: "apt needs a fresh package list"
+  - run: "sudo apt-get update"
+    timeout: 300
+    check_exit: true
+
+  - chapter: "Task 2: Install nginx"
+  - run: "apt-cache policy nginx | head -n 3"
+  - run: "sudo apt-get install -y nginx"
+    timeout: 600
+    check_exit: true
+  - run: "nginx -v"
+
+  - chapter: "Task 3: Start the service"
+  - run: "sudo systemctl enable --now nginx"
+    check_exit: true
+  - run: "systemctl is-active nginx"
+    expect: '^active$'
+  - pause: 1
+
+  - chapter: "Task 4: Check the web server"
+  - run: "curl -sI http://localhost | head -n 1"
+    expect: 'HTTP/1\.1 200 OK'
+  - run: "ls /var/www/html"
+  - run: "sudo ss -ltnp | grep ':80 '"
+  - caption: "nginx is listening on port 80"
+    duration: 3
+  - pause: 2

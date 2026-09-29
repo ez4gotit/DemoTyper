@@ -1,0 +1,2430 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scenarioplay.dev/schema/scenario-v1.json",
+  "additionalProperties": false,
+  "description": "The whole scenario file. Step lists stay raw here; loader.steps parses them.",
+  "properties": {
+    "version": {
+      "const": 1,
+      "default": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "meta": {
+      "$ref": "#/$defs/Meta"
+    },
+    "target": {
+      "$ref": "#/$defs/TargetSpec"
+    },
+    "defaults": {
+      "$ref": "#/$defs/Defaults"
+    },
+    "layout": {
+      "default": "single",
+      "enum": [
+        "single",
+        "split-horizontal",
+        "split-vertical",
+        "grid",
+        "tabs"
+      ],
+      "title": "Layout",
+      "type": "string"
+    },
+    "consoles": {
+      "items": {
+        "$ref": "#/$defs/ConsoleSpec"
+      },
+      "title": "Consoles",
+      "type": "array"
+    },
+    "vars": {
+      "additionalProperties": true,
+      "title": "Vars",
+      "type": "object"
+    },
+    "setup": {
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "title": "Setup",
+      "type": "array"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "minItems": 1,
+      "title": "Steps",
+      "type": "array"
+    },
+    "finally": {
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "title": "Finally",
+      "type": "array"
+    }
+  },
+  "required": [
+    "steps"
+  ],
+  "title": "ScenarioPlay scenario",
+  "type": "object",
+  "$defs": {
+    "AnswerRule": {
+      "additionalProperties": false,
+      "description": "Answer a prompt automatically whenever it appears while a step waits.\n\n`when` is a regex matched against the text before the cursor, where a program that\nasks something leaves it. The answer is typed like any other input, then Enter.",
+      "properties": {
+        "when": {
+          "description": "Regex for the prompt, e.g. '\\[sudo\\] password for'.",
+          "title": "When",
+          "type": "string"
+        },
+        "secret": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of a secret to type. Typed only into hidden input (the terminal is not echoing); a second prompt in the same wait fails the step, since the secret was rejected.",
+          "title": "Secret"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Plain text to type, such as `y`.",
+          "title": "Text"
+        },
+        "enter": {
+          "default": true,
+          "title": "Enter",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "when"
+      ],
+      "title": "AnswerRule",
+      "type": "object"
+    },
+    "BurstSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "chance": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Chance"
+        },
+        "speedup": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Speedup"
+        },
+        "length": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Length"
+        }
+      },
+      "title": "BurstSpec",
+      "type": "object"
+    },
+    "CaptionStep": {
+      "additionalProperties": false,
+      "description": "Show a subtitle line for some seconds without starting a chapter.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Fail"
+        },
+        "when": {
+          "default": null,
+          "title": "When"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "caption": {
+          "minLength": 1,
+          "title": "Caption",
+          "type": "string"
+        },
+        "duration": {
+          "default": 4.0,
+          "exclusiveMinimum": 0,
+          "title": "Duration",
+          "type": "number"
+        }
+      },
+      "required": [
+        "caption"
+      ],
+      "title": "CaptionStep",
+      "type": "object"
+    },
+    "ChapterStep": {
+      "additionalProperties": false,
+      "description": "Start a chapter: video chapter marker, subtitle and log section.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Fail"
+        },
+        "when": {
+          "default": null,
+          "title": "When"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "chapter": {
+          "minLength": 1,
+          "title": "Chapter",
+          "type": "string"
+        },
+        "caption": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caption"
+        }
+      },
+      "required": [
+        "chapter"
+      ],
+      "title": "ChapterStep",
+      "type": "object"
+    },
+    "ClearStep": {
+      "additionalProperties": false,
+      "description": "Clear the console: `clear: command` (or `true`) types `clear`, `clear: key` sends\nCtrl+L.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Fail"
+        },
+        "when": {
+          "default": null,
+          "title": "When"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "wait_for": {
+          "$ref": "#/$defs/Condition"
+        },
+        "expect": {
+          "$ref": "#/$defs/Condition"
+        },
+        "typing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TypingSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "typos": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "enum": [
+                "on",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Typos"
+        },
+        "clear": {
+          "anyOf": [
+            {
+              "enum": [
+                "command",
+                "key"
+              ],
+              "type": "string"
+            },
+            {
+              "const": true,
+              "type": "boolean"
+            }
+          ],
+          "default": "command",
+          "title": "Clear"
+        }
+      },
+      "title": "ClearStep",
+      "type": "object",
+      "required": [
+        "clear"
+      ]
+    },
+    "Condition": {
+      "description": "A wait condition (spec section 7). A bare string is a regex.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/PromptCondition"
+        },
+        {
+          "$ref": "#/$defs/RegexCondition"
+        },
+        {
+          "$ref": "#/$defs/TextCondition"
+        }
+      ]
+    },
+    "ConsoleSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "shell": {
+          "default": "bash",
+          "enum": [
+            "bash",
+            "zsh",
+            "sh"
+          ],
+          "title": "Shell",
+          "type": "string"
+        },
+        "cwd": {
+          "default": "~",
+          "title": "Cwd",
+          "type": "string"
+        },
+        "prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prompt"
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Env",
+          "type": "object"
+        },
+        "typing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TypingSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "answers": {
+          "description": "Prompts answered automatically in this console; checked before `defaults.answers`.",
+          "items": {
+            "$ref": "#/$defs/AnswerRule"
+          },
+          "title": "Answers",
+          "type": "array"
+        },
+        "host": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Host"
+        },
+        "size": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ConsoleSpec",
+      "type": "object"
+    },
+    "Defaults": {
+      "additionalProperties": false,
+      "properties": {
+        "typing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TypingSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prompt": {
+          "default": "[$#%>] ?$",
+          "title": "Prompt",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "title": "Timeout",
+          "type": "number"
+        },
+        "interval": {
+          "default": 0.2,
+          "exclusiveMinimum": 0,
+          "title": "Interval",
+          "type": "number"
+        },
+        "after_command_pause": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "After Command Pause",
+          "type": "number"
+        },
+        "on_fail": {
+          "default": "fail",
+          "enum": [
+            "fail",
+            "continue"
+          ],
+          "title": "On Fail",
+          "type": "string"
+        },
+        "keep_video_on_fail": {
+          "default": true,
+          "title": "Keep Video On Fail",
+          "type": "boolean"
+        },
+        "clear_after_setup": {
+          "default": true,
+          "description": "Clear each console after `setup`, so the video starts clean.",
+          "title": "Clear After Setup",
+          "type": "boolean"
+        },
+        "answers": {
+          "description": "Prompts answered automatically in every console.",
+          "items": {
+            "$ref": "#/$defs/AnswerRule"
+          },
+          "title": "Answers",
+          "type": "array"
+        }
+      },
+      "title": "Defaults",
+      "type": "object"
+    },
+    "EnterStep": {
+      "additionalProperties": false,
+      "description": "Press Enter (`enter: true`, or `enter: 3` to press it three times).",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Fail"
+        },
+        "when": {
+          "default": null,
+          "title": "When"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "wait_for": {
+          "$ref": "#/$defs/Condition"
+        },
+        "expect": {
+          "$ref": "#/$defs/Condition"
+        },
+        "enter": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            }
+          ],
+          "default": true,
+          "title": "Enter"
+        }
+      },
+      "title": "EnterStep",
+      "type": "object",
+      "required": [
+        "enter"
+      ]
+    },
+    "KeyStep": {
+      "additionalProperties": false,
+      "description": "Send a key or combination: C-c, C-d, C-l, Tab, Up, Down, Escape, F1-F12, M-x...",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Fail"
+        },
+        "when": {
+          "default": null,
+          "title": "When"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "wait_for": {
+          "$ref": "#/$defs/Condition"
+        },
+        "expect": {
+          "$ref": "#/$defs/Condition"
+        },
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "repeat": {
+          "default": 1,
+          "exclusiveMinimum": 0,
+          "title": "Repeat",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "title": "KeyStep",
+      "type": "object"
+    },
+    "LogStep": {
+      "additionalProperties": false,
+      "description": "Write a line to the take log only.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Fail"
+        },
+        "when": {
+          "default": null,
+          "title": "When"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "log": {
+          "title": "Log",
+          "type": "string"
+        },
+        "level": {
+          "default": "info",
+          "enum": [
+            "debug",
+            "info",
+            "warning",
+            "error"
+          ],
+          "title": "Level",
+          "type": "string"
+        }
+      },
+      "required": [
+        "log"
+      ],
+      "title": "LogStep",
+      "type": "object"
+    },
+    "Meta": {
+      "additionalProperties": true,
+      "properties": {
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "source_pdf": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Pdf"
+        },
+        "author": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Author"
+        }
+      },
+      "title": "Meta",
+      "type": "object"
+    },
+    "PauseStep": {
+      "additionalProperties": false,
+      "description": "Wait a fixed number of seconds so the viewer can read (scaled by --speed).",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Fail"
+        },
+        "when": {
+          "default": null,
+          "title": "When"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "pause": {
+          "minimum": 0,
+          "title": "Pause",
+          "type": "number"
+        }
+      },
+      "required": [
+        "pause"
+      ],
+      "title": "PauseStep",
+      "type": "object"
+    },
+    "PromptCondition": {
+      "additionalProperties": false,
+      "description": "The console's prompt is back: the prompt regex matches the last non-empty line and,\nwhen the hidden shell hook is active, the shell has finished a command since the last\ninput.",
+      "properties": {
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "enum": [
+                "since_last_input",
+                "screen"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scope"
+        },
+        "on_timeout": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Timeout"
+        },
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "as": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As"
+        },
+        "prompt": {
+          "const": true,
+          "default": true,
+          "title": "Prompt",
+          "type": "boolean"
+        }
+      },
+      "title": "PromptCondition",
+      "type": "object",
+      "required": [
+        "prompt"
+      ]
+    },
+    "RecorderSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "backend": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "x11grab"
+          ],
+          "title": "Backend",
+          "type": "string"
+        },
+        "display": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "X display to record; default $DISPLAY.",
+          "title": "Display"
+        },
+        "fps": {
+          "default": 30,
+          "exclusiveMinimum": 0,
+          "title": "Fps",
+          "type": "integer"
+        },
+        "crf": {
+          "default": 23,
+          "maximum": 51,
+          "minimum": 0,
+          "title": "Crf",
+          "type": "integer"
+        },
+        "codec": {
+          "default": "libx264",
+          "title": "Codec",
+          "type": "string"
+        },
+        "preset": {
+          "default": "veryfast",
+          "title": "Preset",
+          "type": "string"
+        },
+        "lead_in": {
+          "default": 2.0,
+          "minimum": 0,
+          "title": "Lead In",
+          "type": "number"
+        },
+        "tail": {
+          "default": 2.0,
+          "minimum": 0,
+          "title": "Tail",
+          "type": "number"
+        },
+        "draw_mouse": {
+          "default": false,
+          "title": "Draw Mouse",
+          "type": "boolean"
+        }
+      },
+      "title": "RecorderSpec",
+      "type": "object"
+    },
+    "RegexCondition": {
+      "additionalProperties": false,
+      "description": "This regular expression matches the output (multi-line mode: ^ and $ match per line).",
+      "properties": {
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "enum": [
+                "since_last_input",
+                "screen"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scope"
+        },
+        "on_timeout": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Timeout"
+        },
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "as": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As"
+        },
+        "regex": {
+          "title": "Regex",
+          "type": "string"
+        }
+      },
+      "required": [
+        "regex"
+      ],
+      "title": "RegexCondition",
+      "type": "object"
+    },
+    "RunStep": {
+      "additionalProperties": false,
+      "description": "Type a command, press Enter and wait for the prompt (or for `expect` / `wait_for`).",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Fail"
+        },
+        "when": {
+          "default": null,
+          "title": "When"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "wait_for": {
+          "$ref": "#/$defs/Condition"
+        },
+        "expect": {
+          "$ref": "#/$defs/Condition"
+        },
+        "typing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TypingSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "typos": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "enum": [
+                "on",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Typos"
+        },
+        "run": {
+          "title": "Run",
+          "type": "string"
+        },
+        "check_exit": {
+          "default": false,
+          "title": "Check Exit",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "run"
+      ],
+      "title": "RunStep",
+      "type": "object"
+    },
+    "ScreenshotStep": {
+      "additionalProperties": false,
+      "description": "Save a PNG of the screen into the take's screenshots/ folder.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Fail"
+        },
+        "when": {
+          "default": null,
+          "title": "When"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "screenshot": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "const": true,
+              "type": "boolean"
+            }
+          ],
+          "default": true,
+          "title": "Screenshot"
+        }
+      },
+      "title": "ScreenshotStep",
+      "type": "object",
+      "required": [
+        "screenshot"
+      ]
+    },
+    "SecretStep": {
+      "additionalProperties": false,
+      "description": "Type a secret (a password) by name. Shown on screen as the program shows it (a\npassword prompt shows nothing); masked as **** in every output.\n\nThe step first waits until the terminal reads input without echo, so a secret is never\ntyped where it would be visible. `hidden: false` drops that check.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Fail"
+        },
+        "when": {
+          "default": null,
+          "title": "When"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "wait_for": {
+          "$ref": "#/$defs/Condition"
+        },
+        "expect": {
+          "$ref": "#/$defs/Condition"
+        },
+        "typing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TypingSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "typos": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "enum": [
+                "on",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Typos"
+        },
+        "secret": {
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Secret",
+          "type": "string"
+        },
+        "enter": {
+          "default": false,
+          "title": "Enter",
+          "type": "boolean"
+        },
+        "hidden": {
+          "default": true,
+          "title": "Hidden",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "secret"
+      ],
+      "title": "SecretStep",
+      "type": "object"
+    },
+    "SshSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "default": "auto",
+          "title": "Host",
+          "type": "string"
+        },
+        "user": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "User"
+        },
+        "key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Key"
+        },
+        "port": {
+          "default": 22,
+          "exclusiveMinimum": 0,
+          "title": "Port",
+          "type": "integer"
+        }
+      },
+      "title": "SshSpec",
+      "type": "object"
+    },
+    "Step": {
+      "description": "One step: exactly one action keyword plus its options.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CaptionStep"
+        },
+        {
+          "$ref": "#/$defs/ChapterStep"
+        },
+        {
+          "$ref": "#/$defs/ClearStep"
+        },
+        {
+          "$ref": "#/$defs/EnterStep"
+        },
+        {
+          "$ref": "#/$defs/KeyStep"
+        },
+        {
+          "$ref": "#/$defs/LogStep"
+        },
+        {
+          "$ref": "#/$defs/PauseStep"
+        },
+        {
+          "$ref": "#/$defs/RunStep"
+        },
+        {
+          "$ref": "#/$defs/ScreenshotStep"
+        },
+        {
+          "$ref": "#/$defs/SecretStep"
+        },
+        {
+          "$ref": "#/$defs/TypeStep"
+        },
+        {
+          "$ref": "#/$defs/WaitForStep"
+        }
+      ]
+    },
+    "TargetSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "default": "local",
+          "enum": [
+            "local",
+            "vmware"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "vmx": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Vmx"
+        },
+        "snapshot": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Snapshot"
+        },
+        "ssh": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SshSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "record": {
+          "default": "guest",
+          "enum": [
+            "guest",
+            "host"
+          ],
+          "title": "Record",
+          "type": "string"
+        },
+        "boot_timeout": {
+          "default": 180.0,
+          "exclusiveMinimum": 0,
+          "title": "Boot Timeout",
+          "type": "number"
+        },
+        "terminal": {
+          "$ref": "#/$defs/TerminalSpec"
+        },
+        "recorder": {
+          "$ref": "#/$defs/RecorderSpec"
+        }
+      },
+      "title": "TargetSpec",
+      "type": "object"
+    },
+    "TerminalSpec": {
+      "additionalProperties": false,
+      "description": "The full-screen terminal window that shows the tmux session.",
+      "properties": {
+        "command": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Terminal command. A string may contain {attach}; a list gets the attach command appended. Default: the first installed of xterm, alacritty, kitty, gnome-terminal, xfce4-terminal, konsole.",
+          "title": "Command"
+        },
+        "font": {
+          "default": "Monospace",
+          "title": "Font",
+          "type": "string"
+        },
+        "font_size": {
+          "default": 16,
+          "exclusiveMinimum": 0,
+          "title": "Font Size",
+          "type": "integer"
+        }
+      },
+      "title": "TerminalSpec",
+      "type": "object"
+    },
+    "TextCondition": {
+      "additionalProperties": false,
+      "description": "This exact text appears in the output.",
+      "properties": {
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "enum": [
+                "since_last_input",
+                "screen"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scope"
+        },
+        "on_timeout": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Timeout"
+        },
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "as": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "TextCondition",
+      "type": "object"
+    },
+    "TypeStep": {
+      "additionalProperties": false,
+      "description": "Type text character by character. Press Enter only with `enter: true`.",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Fail"
+        },
+        "when": {
+          "default": null,
+          "title": "When"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "wait_for": {
+          "$ref": "#/$defs/Condition"
+        },
+        "expect": {
+          "$ref": "#/$defs/Condition"
+        },
+        "typing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TypingSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "typos": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "enum": [
+                "on",
+                "off"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Typos"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "enter": {
+          "default": false,
+          "title": "Enter",
+          "type": "boolean"
+        },
+        "enter_newlines": {
+          "default": false,
+          "description": "Press Enter for each newline in the text. Without this, text with newlines is refused.",
+          "title": "Enter Newlines",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "TypeStep",
+      "type": "object"
+    },
+    "TypingSpec": {
+      "additionalProperties": false,
+      "description": "Typing parameters; every field is optional so specs can be layered.",
+      "properties": {
+        "profile": {
+          "anyOf": [
+            {
+              "enum": [
+                "novice",
+                "normal",
+                "expert",
+                "robot"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Profile"
+        },
+        "cps": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cps"
+        },
+        "jitter": {
+          "anyOf": [
+            {
+              "maximum": 2,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Jitter"
+        },
+        "word_pause": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Word Pause"
+        },
+        "punctuation_pause": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Punctuation Pause"
+        },
+        "shifted_slowdown": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shifted Slowdown"
+        },
+        "think_before": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Think Before"
+        },
+        "think_long_threshold": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Think Long Threshold"
+        },
+        "burst": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BurstSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "layout": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Layout"
+        },
+        "typos": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TyposSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "TypingSpec",
+      "type": "object"
+    },
+    "TyposSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Enabled"
+        },
+        "rate": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rate"
+        },
+        "kinds": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "propertyNames": {
+                "enum": [
+                  "neighbour",
+                  "transposition",
+                  "doubled",
+                  "missed",
+                  "case"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kinds"
+        },
+        "notice_after": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notice After"
+        },
+        "hesitation": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hesitation"
+        },
+        "backspace_cps": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Backspace Cps"
+        },
+        "max_per_line": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Per Line"
+        },
+        "min_length": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Length"
+        },
+        "protect": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Protect"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "TyposSpec",
+      "type": "object"
+    },
+    "WaitForStep": {
+      "additionalProperties": false,
+      "description": "Block until a screen condition holds (spec section 7).",
+      "properties": {
+        "console": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Console"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "on_fail": {
+          "anyOf": [
+            {
+              "enum": [
+                "fail",
+                "continue"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "On Fail"
+        },
+        "when": {
+          "default": null,
+          "title": "When"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "wait_for": {
+          "$ref": "#/$defs/Condition"
+        }
+      },
+      "required": [
+        "wait_for"
+      ],
+      "title": "WaitForStep",
+      "type": "object"
+    }
+  }
+}
